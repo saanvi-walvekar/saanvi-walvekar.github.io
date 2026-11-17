@@ -11,7 +11,7 @@ export const site = {
     'Saanvi Walvekar — IEOR at IIT Bombay. Photographs, basketball and athletics, projects, tabla, writing, and the questions in between.',
 
   // One of: 'rangoli' | 'chinar' | 'riso'  (see src/styles/palettes.css)
-  palette: 'rangoli',
+  palette: 'riso',
 
   links: [
     { label: 'LinkedIn', href: 'https://www.linkedin.com/in/saanvi-walvekar-262891379/' },

@@ -15,9 +15,11 @@ interface Props {
   /** Site-relative or absolute URL of a share image; defaults to /og.png */
   ogImage?: string;
   ogType?: 'website' | 'article';
+  /** The home page ends with its own big links, so it hides the small footer ones. */
+  footLinks?: boolean;
 }
 
-const { title, description = site.description, world, ogImage = '/og.png', ogType = 'website' } = Astro.props;
+const { title, description = site.description, world, ogImage = '/og.png', ogType = 'website', footLinks = true } = Astro.props;
 const fullTitle = title ? `${title} — ${site.name}` : `${site.name} — ${site.affiliation}`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogUrl = new URL(ogImage, Astro.site);
@@ -75,11 +77,11 @@ const here = worlds.find((w) => w.id === world);
 
     <footer class="foot wrap">
       <p class="hand">{here ? `That was ${here.name}.` : 'Thanks for wandering through.'}</p>
-      <ul>
+      {footLinks && <ul>
         {world && <li><a href="/">Home</a></li>}
         {site.links.map((l) => <li><a href={l.href} rel="me">{l.label}</a></li>)}
         {site.resume && <li><a href={site.resume}>Résumé (PDF)</a></li>}
-      </ul>
+      </ul>}
     </footer>
 
     {import.meta.env.DEV && <PalettePicker />}

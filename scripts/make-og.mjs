@@ -2,7 +2,7 @@
 // the site is shared. Re-run after changing the palette or your name.
 import sharp from 'sharp';
 
-const c = { paper: '#fbf4e6', ink: '#231a14', a: '#d11f6a', b: '#e8542b', c: '#33379b', d: '#f2a20c', e: '#08766f', f: '#6fae45' };
+const c = { paper: '#faf6ec', ink: '#1d1d2b', a: '#ff4fa3', b: '#ff6b2c', c: '#1f6fe0', d: '#ffd21f', e: '#7a54c7', f: '#0fa36b' };
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
   <rect width="1200" height="630" fill="${c.paper}"/>
   <text x="80" y="270" font-family="Georgia, 'Times New Roman', serif" font-size="150" font-weight="700" fill="${c.ink}">Saanvi</text>
