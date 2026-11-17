@@ -1,0 +1,62 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { byNewest, fmtMonth, isoDate } from '../../lib/content';
+
+const wonders = (await getCollection('wonders')).sort(byNewest);
+---
+
+<Base
+  world="wonders"
+  title="Wandering Wonders"
+  description="Questions Saanvi Walvekar wondered about, what she found out, and where she found it."
+>
+  <div class="wrap">
+    <header class="world-head">
+      <p class="eyebrow">Questions I chased</p>
+      <h1>Wandering Wonders</h1>
+      <p class="lede">Something I wondered, what I found out, and where I found it.</p>
+    </header>
+
+    <ul class="cards">
+      {wonders.map((w, i) => (
+        <li>
+          <a href={`/wonders/${w.id}/`}>
+            <span class="no">Q{String(wonders.length - i).padStart(2, '0')}</span>
+            <h2>{w.data.question}</h2>
+            <p>{w.data.short}</p>
+            <span class="foot">
+              <time datetime={isoDate(w.data.date)}>{fmtMonth(w.data.date)}</time>
+              <span>how I found out →</span>
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</Base>
+
+<style>
+  .cards { list-style: none; margin: 0; padding: 0; columns: 20rem; column-gap: 1.5rem; }
+  .cards li { break-inside: avoid; padding-bottom: 1.5rem; }
+  .cards a {
+    display: block; padding: 1.25rem 1.25rem 1rem; text-decoration: none;
+    background: #fffdf8; border: 1.5px solid var(--ink); border-top: 0.7rem solid var(--world);
+    box-shadow: 4px 5px 0 color-mix(in oklab, var(--ink) 20%, transparent);
+    transition: translate 0.18s, box-shadow 0.18s;
+  }
+  /* cycle the card tops through the whole palette */
+  .cards li:nth-child(6n + 2) a { --world: var(--photos); }
+  .cards li:nth-child(6n + 3) a { --world: var(--music); }
+  .cards li:nth-child(6n + 4) a { --world: var(--projects); }
+  .cards li:nth-child(6n + 5) a { --world: var(--sport); }
+  .cards li:nth-child(6n) a { --world: var(--words); }
+  .cards li:nth-child(odd) a { rotate: -0.6deg; }
+  .cards li:nth-child(even) a { rotate: 0.5deg; }
+  .cards a:hover, .cards a:focus-visible { translate: 0 -4px; box-shadow: 7px 9px 0 var(--world); }
+  .no { font-size: var(--s-1); font-weight: 700; letter-spacing: 0.12em; }
+  h2 { font-size: clamp(1.6rem, 2vw + 1rem, 2.2rem); font-weight: 600; line-height: 1.1; margin: 0.4rem 0 0.8rem; }
+  p { margin: 0 0 1.1rem; }
+  .foot { display: flex; justify-content: space-between; gap: 1rem; padding-top: 0.7rem; border-top: 1px solid var(--rule); font-size: var(--s-1); font-weight: 600; }
+  .foot time { color: var(--ink-soft); }
+</style>

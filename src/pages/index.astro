@@ -1,0 +1,252 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { site, worlds } from '../site.config';
+import { fmtMonth, isoDate } from '../lib/content';
+
+const [photos, projects, music, words, wonders] = await Promise.all([
+  getCollection('photos'),
+  getCollection('projects'),
+  getCollection('music'),
+  getCollection('words'),
+  getCollection('wonders'),
+]);
+
+const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
+const counts: Record<string, string> = {
+  photos: plural(photos.length, 'album'),
+  sport: 'two sports',
+  projects: plural(projects.length, 'project'),
+  music: music.length ? plural(music.length, 'clip') : 'tuning up',
+  words: plural(words.length, 'piece'),
+  wonders: plural(wonders.length, 'question'),
+};
+
+const latest = [
+  ...photos.map((e) => ({ date: e.data.date, world: 'photos', title: e.data.title, href: `/photos/${e.id}/` })),
+  ...projects.map((e) => ({ date: e.data.date, world: 'projects', title: e.data.title, href: `/projects/${e.id}/` })),
+  ...music.map((e) => ({ date: e.data.date, world: 'music', title: e.data.title, href: '/music/' })),
+  ...words.map((e) => ({ date: e.data.date, world: 'words', title: e.data.title, href: `/words/${e.id}/` })),
+  ...wonders.map((e) => ({ date: e.data.date, world: 'wonders', title: e.data.question, href: `/wonders/${e.id}/` })),
+]
+  .sort((a, b) => b.date.getTime() - a.date.getTime())
+  .slice(0, 6);
+
+const worldName = (id: string) => worlds.find((w) => w.id === id)!.name;
+const [first, ...rest] = site.name.split(' ');
+const beats = Array.from({ length: 16 }, (_, i) => i);
+---
+
+<Base>
+  <section class="intro wrap">
+    <h1>
+      <span class="l1">{first}</span>
+      <span class="l2">{rest.join(' ')}<i aria-hidden="true">.</i></span>
+    </h1>
+    <p class="tag hand">{site.affiliation}</p>
+    <div class="about">
+      <p>{site.intro}</p>
+      <ul>
+        {site.links.map((l) => <li><a href={l.href} rel="me">{l.label}</a></li>)}
+        {site.resume && <li><a href={site.resume}>Résumé</a></li>}
+      </ul>
+    </div>
+  </section>
+
+  <section class="wrap" aria-labelledby="worlds-h">
+    <h2 id="worlds-h" class="eyebrow rule">Six worlds, one person</h2>
+    <ul class="worlds">
+      {worlds.map((w, i) => (
+        <li class={`tile t-${w.id}`} data-world={w.id}>
+          <a href={w.href}>
+            <div class="art" aria-hidden="true">
+              {w.id === 'photos' && (
+                <div class="pc">
+                  <div class="pc-img"><svg viewBox="0 0 120 80" preserveAspectRatio="xMidYMid slice"><path d="M0 62 28 30l16 18 20-28 22 30 12-12 22 24v18H0z" fill="currentColor" opacity=".35"/><circle cx="92" cy="20" r="9" fill="currentColor"/></svg></div>
+                  <div class="pc-back"><span class="stamp"></span><i></i><i></i><i></i></div>
+                </div>
+              )}
+              {w.id === 'sport' && (
+                <svg viewBox="0 0 200 150" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M10 140V10h180v130" /><path d="M70 10v66h60V10" /><path d="M70 76a30 30 0 0 0 60 0" /><path d="M70 76a30 30 0 0 1 60 0" stroke-dasharray="5 5" />
+                  <path d="M28 10v32a72 72 0 0 0 144 0V10" /><path d="M88 22h24" stroke-width="3.5" /><circle cx="100" cy="29" r="5" />
+                </svg>
+              )}
+              {w.id === 'projects' && (
+                <svg viewBox="0 0 200 130" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M34 34 96 62 160 28M96 62l-48 44M96 62l66 40M48 106h114" />
+                  <g fill="currentColor" stroke="var(--paper)" stroke-width="3"><circle cx="34" cy="34" r="9" /><circle cx="96" cy="62" r="14" /><circle cx="160" cy="28" r="8" /><circle cx="48" cy="106" r="8" /><circle cx="162" cy="102" r="11" /></g>
+                </svg>
+              )}
+              {w.id === 'music' && (
+                <div class="beats">{beats.map((b) => <i class:list={{ sam: b === 0, khali: b >= 8 && b < 12 }} />)}</div>
+              )}
+              {w.id === 'words' && <p class="hand">a line I kept<br />turning over —</p>}
+              {w.id === 'wonders' && <span class="q">?</span>}
+            </div>
+            <div class="meta">
+              <span class="no">0{i + 1}</span>
+              <h3>{w.name}</h3>
+              <p>{w.kind} · {counts[w.id]}</p>
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  {latest.length > 0 && (
+    <section class="wrap latest" aria-labelledby="latest-h">
+      <h2 id="latest-h" class="eyebrow rule">Lately</h2>
+      <ol>
+        {latest.map((l) => (
+          <li data-world={l.world}>
+            <a href={l.href}>
+              <time datetime={isoDate(l.date)}>{fmtMonth(l.date)}</time>
+              <span class="w">{worldName(l.world)}</span>
+              <span class="t">{l.title}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )}
+</Base>
+
+<style>
+  .intro {
+    display: grid;
+    grid-template-columns: 1fr;
+    padding-block: clamp(2rem, 7vw, 5rem) clamp(2rem, 5vw, 4rem);
+    position: relative;
+  }
+  .intro h1 { font-size: var(--s4); font-weight: 800; line-height: 0.86; letter-spacing: -0.05em; }
+  .intro h1 span { display: block; }
+  .l2 { font-style: italic; font-weight: 500; padding-left: 0.6em; }
+  .l2 i { color: var(--photos); font-style: normal; }
+  .tag {
+    justify-self: start;
+    margin: 1.4rem 0 0;
+    padding: 0.2em 0.7em 0.3em;
+    background: var(--music); color: var(--on-music);
+    rotate: -3deg;
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
+  }
+  .about { margin-top: 2rem; max-width: 34rem; font-size: var(--s1); line-height: 1.45; }
+  .about ul { display: flex; flex-wrap: wrap; gap: 0.2rem 1.4rem; list-style: none; padding: 0; margin: 0; font-size: 1rem; font-weight: 600; }
+  .about li:nth-child(6n + 1) { --world: var(--projects); }
+  .about li:nth-child(6n + 2) { --world: var(--photos); }
+  .about li:nth-child(6n + 3) { --world: var(--words); }
+  .about li:nth-child(6n + 4) { --world: var(--sport); }
+  .about li:nth-child(6n + 5) { --world: var(--wonders); }
+  .about a { display: inline-block; padding-block: 0.4rem; }
+
+  @media (min-width: 56rem) {
+    .intro { grid-template-columns: 1fr auto; column-gap: 3rem; align-items: end; }
+    .intro h1 { grid-column: 1 / -1; }
+    .tag { grid-column: 2; grid-row: 2; justify-self: end; margin-top: -1.2rem; }
+    .about { grid-column: 1; grid-row: 2; }
+  }
+
+  .rule { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; font-family: var(--sans); }
+  .rule::after { content: ''; flex: 1; height: 1.5px; background: var(--ink); }
+
+  /* ---------- the six tiles: deliberately unequal ---------- */
+  .worlds { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.9rem; grid-template-columns: repeat(2, 1fr); }
+  .tile { min-width: 0; container-type: inline-size; }
+  .tile a {
+    position: relative; display: flex; flex-direction: column; justify-content: flex-end;
+    height: 100%; min-height: 14.5rem; padding: 1rem;
+    text-decoration: none; overflow: hidden;
+    border: 1.5px solid var(--ink); border-radius: 4px;
+    background: var(--world); color: var(--on-world);
+    transition: translate 0.18s ease, box-shadow 0.18s ease;
+  }
+  .tile a:hover, .tile a:focus-visible { translate: -3px -3px; box-shadow: 6px 6px 0 var(--ink); }
+  .meta { position: relative; }
+  .meta .no { font-size: var(--s-1); font-weight: 700; letter-spacing: 0.1em; }
+  .meta h3 { font-size: clamp(1.3rem, 10.5cqi, 2.6rem); font-weight: 700; margin-block: 0.1rem 0.25rem; }
+  .meta p { margin: 0; font-size: 0.9rem; font-weight: 500; }
+  .art { position: absolute; inset: 0; pointer-events: none; }
+
+  .t-photos, .t-wonders { grid-column: 1 / -1; }
+  .t-photos a { min-height: 17rem; }
+
+  /* paper-backed tiles: colour comes from the art instead of the fill */
+  .t-projects a, .t-words a { background-color: var(--paper); color: var(--ink); }
+  .t-projects a {
+    background-image: linear-gradient(var(--rule) 1px, transparent 1px), linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+    background-size: 18px 18px;
+  }
+  .t-projects .art { color: var(--projects); padding: 0.8rem 0.8rem 5.5rem; }
+  .t-projects .art svg { width: 100%; height: 100%; }
+  .t-words a {
+    background-image: linear-gradient(90deg, transparent 1.9rem, var(--sport) 1.9rem, var(--sport) calc(1.9rem + 1.5px), transparent 0), repeating-linear-gradient(transparent 0 1.55rem, var(--rule) 1.55rem calc(1.55rem + 1px));
+  }
+  .t-words .art { padding: 1.1rem 0.8rem 0 2.6rem; color: var(--words); }
+  .t-words .art p { font-size: 1.3rem; line-height: 1.55rem; margin: 0; font-weight: 700; }
+  .t-words .meta { padding-left: 1.6rem; }
+
+  .t-sport .art { inset: 0 0 auto; height: 40%; overflow: hidden; padding: 0 14%; opacity: 0.8; }
+  .t-sport .art svg { width: 100%; margin-top: -6%; }
+
+  .t-music .art { display: grid; place-items: start end; padding: 1rem; }
+  .beats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.45rem; width: min(40%, 7rem); }
+  .beats i { aspect-ratio: 1; border-radius: 50%; background: var(--on-music); }
+  .beats i.sam { background: var(--photos); scale: 1.2; }
+  .beats i.khali { background: none; border: 2px solid var(--on-music); }
+
+  .t-wonders .meta { max-width: 66%; }
+  .t-wonders .q {
+    position: absolute; right: 4%; top: 50%; translate: 0 -52%;
+    font-family: var(--display); font-weight: 800; font-style: italic;
+    font-size: clamp(11rem, 30vw, 19rem); line-height: 1; opacity: 0.9;
+    color: var(--paper);
+    -webkit-text-stroke: 2px var(--ink);
+  }
+
+  .pc {
+    position: absolute; right: 5%; top: 9%; width: min(74%, 30rem); aspect-ratio: 3 / 2;
+    display: grid; grid-template-columns: 1.15fr 1fr;
+    background: var(--paper); color: var(--ink);
+    border: 1.5px solid var(--ink); rotate: 4deg;
+    box-shadow: 5px 6px 0 color-mix(in oklab, var(--ink) 35%, transparent);
+  }
+  .pc-img { margin: 6%; background: var(--music); color: var(--projects); overflow: hidden; }
+  .pc-img svg { width: 100%; height: 100%; }
+  .pc-back { border-left: 1.5px solid var(--rule); padding: 12% 10%; display: flex; flex-direction: column; justify-content: flex-end; gap: 14%; }
+  .pc-back i { height: 1.5px; background: var(--ink); opacity: 0.45; }
+  .stamp { position: absolute; top: 9%; right: 4.5%; width: 15%; aspect-ratio: 4 / 5; background: var(--words); outline: 3px dotted var(--paper); outline-offset: -1px; border: 1px solid var(--ink); }
+
+  @media (min-width: 56rem) {
+    .worlds { grid-template-columns: repeat(12, 1fr); grid-auto-rows: minmax(15rem, auto); gap: 1.1rem; }
+    .tile a { padding: 1.35rem; }
+    .t-photos { grid-column: 1 / 8; grid-row: 1 / 3; }
+    .t-sport { grid-column: 8 / 13; }
+    .t-projects { grid-column: 8 / 13; }
+    .t-music { grid-column: 1 / 5; }
+    .t-words { grid-column: 5 / 8; }
+    .t-wonders { grid-column: 8 / 13; }
+    .t-sport .art { padding-inline: 26%; height: 46%; }
+    .pc { top: 10%; right: 6%; width: 72%; }
+    .t-wonders .meta { max-width: 66%; }
+  .t-wonders .q { font-size: 15rem; }
+  }
+
+  /* ---------- lately ---------- */
+  .latest { margin-top: clamp(2.5rem, 6vw, 4.5rem); }
+  .latest ol { list-style: none; margin: 0; padding: 0; }
+  .latest a {
+    display: grid; grid-template-columns: 5.2rem 1fr; gap: 0 1rem; align-items: baseline;
+    padding-block: 0.8rem; border-bottom: 1px solid var(--rule); text-decoration: none;
+  }
+  .latest time { font-size: var(--s-1); font-weight: 600; color: var(--ink-soft); grid-row: span 2; }
+  .latest .w { font-size: var(--s-1); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; display: flex; align-items: center; gap: 0.5em; }
+  .latest .w::before { content: ''; width: 0.75em; height: 0.75em; border-radius: 50%; background: var(--world); border: 1px solid var(--ink); }
+  .latest .t { font-family: var(--display); font-size: var(--s1); font-weight: 500; line-height: 1.25; }
+  .latest a:hover .t { text-decoration: underline; text-decoration-color: var(--world); text-decoration-thickness: 0.14em; }
+  @media (min-width: 48rem) {
+    .latest a { grid-template-columns: 6rem 11rem 1fr; }
+    .latest time { grid-row: auto; }
+  }
+</style>

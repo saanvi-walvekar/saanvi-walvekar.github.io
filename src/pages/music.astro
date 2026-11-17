@@ -1,0 +1,97 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { audioIn, byNewest, fmtMonth, isoDate } from '../lib/content';
+
+const clips = (await getCollection('music')).sort(byNewest);
+
+// Teentaal theka: 16 beats in four groups of four.
+const bols = ['Dha', 'Dhin', 'Dhin', 'Dha', 'Dha', 'Dhin', 'Dhin', 'Dha', 'Dha', 'Tin', 'Tin', 'Ta', 'Ta', 'Dhin', 'Dhin', 'Dha'];
+const marks: Record<number, string> = { 1: 'X', 5: '2', 9: '0', 13: '3' };
+const markNames: Record<string, string> = { X: 'sam', '2': 'tali', '0': 'khali', '3': 'tali' };
+
+const beats = bols.map((bol, i) => {
+  const beat = i + 1;
+  return { beat, bol, mark: marks[beat], khali: beat >= 9 && beat <= 12, clips: clips.filter((c) => c.data.beat === beat) };
+});
+---
+
+<Base
+  world="music"
+  title="Sixteen Beats"
+  description="Saanvi Walvekar's music, laid out on the sixteen beats of teentaal: tabla and a few other instruments."
+>
+  <div class="wrap">
+    <header class="world-head">
+      <p class="eyebrow">Tabla &amp; more</p>
+      <h1>Sixteen Beats</h1>
+      <p class="lede">
+        Teentaal: sixteen beats, four groups of four. Recordings will land on these beats as I make them.
+      </p>
+    </header>
+
+    {clips.length === 0 && (
+      <p class="wip"><span class="hand">Work in progress.</span> The cycle is set; the recordings are still being made.</p>
+    )}
+
+    <ol class="cycle" aria-label="The sixteen beats of teentaal">
+      {beats.map((b) => (
+        <li class:list={{ khali: b.khali, filled: b.clips.length > 0 }}>
+          {b.mark && <span class="mark" title={markNames[b.mark]}>{b.mark}<span class="vh"> ({markNames[b.mark]})</span></span>}
+          <span class="n">{b.beat}</span>
+          <span class="bol">{b.bol}</span>
+          {b.clips.map((c) => <a href={`#${c.id}`}>{c.data.title}</a>)}
+        </li>
+      ))}
+    </ol>
+    <p class="key soft">X is sam, the first beat. 2 and 3 are claps. 0 is khali, the wave, where the bols go hollow.</p>
+
+    {clips.length > 0 && (
+      <ul class="clips">
+        {clips.map((c) => (
+          <li id={c.id}>
+            <p class="when">Beat {c.data.beat} · {c.data.instrument} · <time datetime={isoDate(c.data.date)}>{fmtMonth(c.data.date)}</time></p>
+            <h2>{c.data.title}</h2>
+            {c.data.audio && <audio controls preload="none" src={audioIn('music', c.id, c.data.audio)} />}
+            {c.data.url && <p><a href={c.data.url}>Listen / watch →</a></p>}
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+</Base>
+
+<style>
+  .wip { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.8rem; padding: 0.9rem 1.1rem; margin-bottom: 2rem; border: 2px dashed var(--ink); max-width: 44rem; }
+  .wip .hand { font-size: 1.7rem; font-weight: 700; }
+
+  .cycle { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.6rem 0.5rem; }
+  .cycle li {
+    position: relative; aspect-ratio: 1; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem;
+    border-radius: 50%; border: 1.5px solid var(--ink);
+    background: var(--world); color: var(--on-world);
+  }
+  .cycle li.khali { background: transparent; color: var(--ink); border-style: dashed; }
+  .cycle li.filled { box-shadow: 0 0 0 5px var(--paper), 0 0 0 7px var(--ink); }
+  .n { font-size: 0.7rem; font-weight: 700; opacity: 0.75; }
+  .bol { font-family: var(--display); font-weight: 700; font-style: italic; font-size: clamp(1.05rem, 4.6vw, 2.6rem); line-height: 1; }
+  .mark { position: absolute; top: -1.35rem; left: 50%; translate: -50%; font-weight: 800; font-size: 0.95rem; color: var(--ink); }
+  .cycle a { font-size: 0.7rem; font-weight: 700; text-decoration-color: currentColor; max-width: 85%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .key { margin-top: 1.5rem; max-width: 40rem; font-size: 0.95rem; }
+  @media (min-width: 52rem) {
+    /* one long line of sixteen, grouped in fours */
+    .cycle { grid-template-columns: repeat(16, 1fr); gap: 0.4rem; margin-top: 2.5rem; }
+    .cycle li:nth-child(4n + 1):not(:first-child) { margin-left: 0; }
+    .cycle li:nth-child(4n):not(:last-child) { margin-right: 0; }
+    .cycle { column-gap: 0.35rem; }
+    .cycle li:nth-child(4n):not(:last-child)::after { content: ''; position: absolute; right: calc(-0.175rem - 1px); top: -20%; height: 140%; width: 2px; background: var(--ink); }
+    .bol { font-size: clamp(0.8rem, 1.5vw, 1.25rem); }
+  }
+
+  .clips { list-style: none; margin: 3rem 0 0; padding: 0; border-top: 1.5px solid var(--ink); }
+  .clips li { padding-block: 1.5rem; border-bottom: 1px solid var(--rule); scroll-margin-top: 1rem; }
+  .clips .when { font-size: var(--s-1); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.3rem; }
+  .clips h2 { margin-bottom: 0.8rem; }
+  audio { width: min(100%, 32rem); }
+</style>

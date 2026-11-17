@@ -1,0 +1,23 @@
+---
+import Base from '../layouts/Base.astro';
+import { worlds } from '../site.config';
+---
+
+<Base title="Page not found" description="That page doesn't exist.">
+  <div class="wrap lost">
+    <p class="hand">wrong turn —</p>
+    <h1>This page isn’t on the map.</h1>
+    <p>It may have moved, or never existed. Try one of these instead:</p>
+    <ul>
+      <li><a href="/">Home</a></li>
+      {worlds.map((w) => <li data-world={w.id}><a href={w.href}>{w.name}</a></li>)}
+    </ul>
+  </div>
+</Base>
+
+<style>
+  .lost { padding-block: clamp(3rem, 12vw, 8rem); }
+  .hand { font-size: 2rem; margin: 0; }
+  h1 { margin-bottom: 1.5rem; }
+  ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-weight: 600; font-size: var(--s1); }
+</style>

@@ -1,0 +1,48 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { byNewest, fmtDate, isoDate } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const pieces = (await getCollection('words')).sort(byNewest);
+  return pieces.map((piece, i) => ({
+    params: { slug: piece.id },
+    props: { piece, newer: pieces[i - 1], older: pieces[i + 1] },
+  }));
+}
+
+const { piece, newer, older } = Astro.props;
+const { title, date, kind } = piece.data;
+const { Content } = await render(piece);
+---
+
+<Base world="words" title={title} description={`${title}: a ${kind} by Saanvi Walvekar.`} ogType="article">
+  <article class="wrap">
+    <p class="eyebrow crumb"><a href="/words/">The Notebook</a> / {kind}</p>
+    <div class="sheet">
+      <h1>{title}</h1>
+      <div class:list={['text', kind]}><Content /></div>
+      <p class="date"><time datetime={isoDate(date)}>{fmtDate(date)}</time></p>
+    </div>
+    <nav class="pager" aria-label="More writing">
+      {older ? <a href={`/words/${older.id}/`}>← {older.data.title}</a> : <span />}
+      {newer && <a href={`/words/${newer.id}/`}>{newer.data.title} →</a>}
+    </nav>
+  </article>
+</Base>
+
+<style>
+  .crumb { margin: 2rem 0 1.25rem; }
+  h1 { font-size: 2rem; font-style: italic; font-weight: 600; line-height: var(--line); letter-spacing: -0.01em; margin-bottom: var(--line); text-wrap: wrap; }
+  /* every line of text sits on a ruled line */
+  .text { font-family: var(--display); font-size: 1.2rem; line-height: var(--line); }
+  /* pre-line keeps each typed line break, so poems pasted from a notes app keep their lines */
+  .text :global(p) { margin: 0 0 var(--line); text-wrap: wrap; white-space: pre-line; }
+  .text :global(h2), .text :global(h3) { font-size: 1.2rem; line-height: var(--line); margin: 0; letter-spacing: 0; }
+  .text :global(hr) { border: 0; height: var(--line); margin: 0; }
+  .text :global(hr)::after { content: '⁂'; display: block; text-align: center; line-height: var(--line); }
+  .text.story, .text.essay { max-width: 36rem; }
+  .date { font-family: var(--hand); font-size: 1.4rem; line-height: var(--line); margin: 0; color: var(--world); font-weight: 700; }
+  .pager { display: flex; justify-content: space-between; gap: 1.5rem; max-width: 46rem; margin-top: 2rem; font-weight: 600; }
+  .pager a:last-child { text-align: right; margin-left: auto; }
+</style>

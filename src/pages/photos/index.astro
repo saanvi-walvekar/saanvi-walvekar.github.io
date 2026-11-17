@@ -1,0 +1,90 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Postcard from '../../components/Postcard.astro';
+import { byNewest } from '../../lib/content';
+
+const albums = (await getCollection('photos')).sort(byNewest);
+const categories = ['Travel', 'Campus', 'People', 'Sport'] as const;
+const used = new Set(albums.map((a) => a.data.category));
+---
+
+<Base
+  world="photos"
+  title="Postcards"
+  description="Photo albums by Saanvi Walvekar, sent as postcards: travel, campus, people and sport."
+>
+  <div class="wrap">
+    <header class="world-head">
+      <p class="eyebrow">Photographs</p>
+      <h1>Postcards</h1>
+      <p class="lede">One postcard per album. Turn one over to see everything I brought back.</p>
+    </header>
+
+    <div class="filters" role="group" aria-label="Filter postcards by stamp">
+      <button type="button" data-filter="all" aria-pressed="true">All</button>
+      {categories.map((c) => (
+        <button type="button" data-filter={c} aria-pressed="false" disabled={!used.has(c)}>{c}</button>
+      ))}
+    </div>
+
+    <ul class="rack">
+      {albums.map((album, i) => (
+        <li data-category={album.data.category}><Postcard album={album} eager={i < 2} /></li>
+      ))}
+    </ul>
+    <p class="none hand" hidden>No postcards with that stamp yet.</p>
+  </div>
+</Base>
+
+<script>
+  const buttons = document.querySelectorAll<HTMLButtonElement>('.filters button');
+  const cards = document.querySelectorAll<HTMLLIElement>('.rack > li');
+  const none = document.querySelector<HTMLElement>('.none')!;
+
+  function apply(filter: string) {
+    let shown = 0;
+    cards.forEach((li) => {
+      const on = filter === 'all' || li.dataset.category === filter;
+      li.hidden = !on;
+      if (on) shown++;
+    });
+    none.hidden = shown > 0;
+    buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filter === filter)));
+  }
+
+  buttons.forEach((b) =>
+    b.addEventListener('click', () => {
+      const f = b.dataset.filter!;
+      history.replaceState(null, '', f === 'all' ? location.pathname : `#${f.toLowerCase()}`);
+      apply(f);
+    }),
+  );
+
+  // A shared link like /photos/#travel opens with that stamp selected.
+  const fromHash = [...buttons].find((b) => !b.disabled && b.dataset.filter!.toLowerCase() === location.hash.slice(1));
+  if (fromHash) apply(fromHash.dataset.filter!);
+</script>
+
+<style>
+  .filters { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2rem; }
+  .filters button {
+    min-height: 2.75rem; padding: 0.3rem 1rem;
+    background: #fffdf8; border: 1.5px solid var(--ink); cursor: pointer;
+    font-size: var(--s-1); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    outline: 3px dotted var(--paper); outline-offset: -1px;
+  }
+  .filters button:nth-child(odd) { rotate: -1.5deg; }
+  .filters button:nth-child(even) { rotate: 1.5deg; }
+  .filters button[aria-pressed='true'] { background: var(--world); color: var(--on-world); }
+  .filters button:disabled { opacity: 0.4; cursor: default; }
+  .filters button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+
+  .rack { list-style: none; margin: 0; padding: 0; display: grid; gap: 2rem 1.75rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17.5rem), 1fr)); }
+  .rack > li:nth-child(3n + 1) :global(.postcard) { rotate: -1.2deg; }
+  .rack > li:nth-child(3n + 2) :global(.postcard) { rotate: 0.9deg; }
+  .rack > li:nth-child(3n) :global(.postcard) { rotate: -0.4deg; }
+  /* stagger the rows a little on wide screens */
+  @media (min-width: 64rem) { .rack > li:nth-child(3n + 2) { margin-top: 2.5rem; } }
+  .none { font-size: 1.6rem; }
+</style>

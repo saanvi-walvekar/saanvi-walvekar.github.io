@@ -1,0 +1,122 @@
+---
+import '@fontsource-variable/fraunces';
+import '@fontsource-variable/fraunces/wght-italic.css';
+import '@fontsource-variable/instrument-sans';
+import '@fontsource/caveat/400.css';
+import '@fontsource/caveat/700.css';
+import '../styles/global.css';
+import { site, worlds, type WorldId } from '../site.config';
+import PalettePicker from '../components/PalettePicker.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  world?: WorldId;
+  /** Site-relative or absolute URL of a share image; defaults to /og.png */
+  ogImage?: string;
+  ogType?: 'website' | 'article';
+}
+
+const { title, description = site.description, world, ogImage = '/og.png', ogType = 'website' } = Astro.props;
+const fullTitle = title ? `${title} — ${site.name}` : `${site.name} — ${site.affiliation}`;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogUrl = new URL(ogImage, Astro.site);
+const here = worlds.find((w) => w.id === world);
+---
+
+<!doctype html>
+<html lang="en" data-palette={site.palette} data-world={world}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="author" content={site.name} />
+
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={title ?? site.name} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogUrl} />
+    <meta name="twitter:card" content="summary_large_image" />
+    {import.meta.env.DEV && (
+      <script is:inline>
+        try { const p = localStorage.getItem('palette'); if (p) document.documentElement.dataset.palette = p; } catch {}
+      </script>
+    )}
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    {world && (
+      <header class="bar wrap">
+        <a class="home" href="/" aria-label={`Back to ${site.shortName}'s home page`}>
+          <span aria-hidden="true">←</span> {site.shortName}
+        </a>
+        <nav aria-label="Worlds">
+          <ul>
+            {worlds.map((w) => (
+              <li>
+                <a href={w.href} data-world={w.id} aria-current={w.id === world ? 'page' : undefined} title={w.name}>
+                  <span class="dot" aria-hidden="true"></span>
+                  <span class="label">{w.name}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </header>
+    )}
+
+    <main id="main"><slot /></main>
+
+    <footer class="foot wrap">
+      <p class="hand">{here ? `That was ${here.name}.` : 'Thanks for wandering through.'}</p>
+      <ul>
+        {world && <li><a href="/">Home</a></li>}
+        {site.links.map((l) => <li><a href={l.href} rel="me">{l.label}</a></li>)}
+        {site.resume && <li><a href={site.resume}>Résumé (PDF)</a></li>}
+      </ul>
+    </footer>
+
+    {import.meta.env.DEV && <PalettePicker />}
+  </body>
+</html>
+
+<style>
+  .skip { position: absolute; left: -999px; top: 0; background: var(--ink); color: var(--paper); padding: 0.5rem 1rem; z-index: 10; }
+  .skip:focus { left: 0; }
+
+  .bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding-block: 1rem;
+    border-bottom: 1.5px solid var(--ink);
+  }
+  .home { font-family: var(--display); font-weight: 700; font-size: 1.25rem; text-decoration: none; white-space: nowrap; padding-block: 0.4rem; }
+  .home:hover { text-decoration: underline; }
+  .bar ul { display: flex; gap: 0.15rem; list-style: none; margin: 0; padding: 0; }
+  .bar nav a {
+    display: flex; align-items: center; gap: 0.45rem;
+    padding: 0.55rem 0.4rem; text-decoration: none; font-size: var(--s-1); font-weight: 600;
+  }
+  .dot { width: 1.05rem; height: 1.05rem; border-radius: 50%; background: var(--world); border: 1.5px solid var(--ink); transition: scale 0.15s; }
+  .bar nav a:hover .dot { scale: 1.25; }
+  .label { display: none; }
+  .bar nav a[aria-current] .dot { border-radius: 3px; rotate: 45deg; }
+  @media (min-width: 40rem) {
+    .bar nav a[aria-current] .label { display: inline; }
+  }
+
+  .foot {
+    margin-top: clamp(3rem, 8vw, 6rem);
+    padding-block: 1.5rem 2.5rem;
+    border-top: 1.5px solid var(--ink);
+    display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.75rem 2rem;
+  }
+  .foot p { margin: 0; }
+  .foot ul { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; list-style: none; margin: 0; padding: 0; font-size: 0.95rem; font-weight: 600; }
+  .foot a { display: inline-block; padding-block: 0.35rem; }
+</style>

@@ -1,0 +1,127 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { byNewest } from '../../lib/content';
+
+const projects = (await getCollection('projects')).sort(byNewest);
+const n = projects.length;
+
+// Nodes sit on a ring (two alternating rings once it gets crowded), in
+// percentages so the same layout works in a wide or a tall box.
+const nodes = projects.map((p, i) => {
+  const angle = -Math.PI / 2 + (i * 2 * Math.PI) / Math.max(n, 1) + (n % 2 ? 0 : Math.PI / n);
+  const r = n > 6 && i % 2 ? 0.62 : 1;
+  return { p, x: 50 + 35 * r * Math.cos(angle), y: 50 + 36 * r * Math.sin(angle) };
+});
+
+// An edge joins two projects that share at least one skill.
+const norm = (s: string) => s.trim().toLowerCase();
+const edges = nodes.flatMap((a, i) =>
+  nodes.slice(i + 1).flatMap((b) => {
+    const mine = new Set(a.p.data.skills.map(norm));
+    const shared = b.p.data.skills.filter((s) => mine.has(norm(s)));
+    return shared.length ? [{ a, b, shared }] : [];
+  }),
+);
+const degree = (id: string) => edges.filter((e) => e.a.p.id === id || e.b.p.id === id).length;
+---
+
+<Base
+  world="projects"
+  title="The Network"
+  description="Projects by Saanvi Walvekar, drawn as a network: each node is a project, each edge a shared skill."
+>
+  <div class="wrap">
+    <header class="world-head">
+      <p class="eyebrow">Projects</p>
+      <h1>The Network</h1>
+      <p class="lede">Every node is a project. An edge means two projects used the same skill.</p>
+    </header>
+
+    <div class="graph">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        {edges.map((e) => <line x1={e.a.x} y1={e.a.y} x2={e.b.x} y2={e.b.y} style={`--w:${Math.min(e.shared.length, 4)}`} />)}
+      </svg>
+      {edges.map((e) => (
+        <span class="edge-label" style={`left:${(e.a.x + e.b.x) / 2}%;top:${(e.a.y + e.b.y) / 2}%`} aria-hidden="true">
+          {e.shared.join(' · ')}
+        </span>
+      ))}
+      {nodes.map(({ p, x, y }) => (
+        <a class="node" href={`/projects/${p.id}/`} style={`left:${x}%;top:${y}%;--d:${degree(p.id)}`}>
+          <span class="pin" aria-hidden="true"></span>
+          <span class="name">{p.data.title}</span>
+        </a>
+      ))}
+    </div>
+
+    <h2 class="eyebrow list-h">Adjacency list</h2>
+    <ul class="list">
+      {projects.map((p) => (
+        <li>
+          <a href={`/projects/${p.id}/`}>
+            <h3>{p.data.title}</h3>
+            <p>{p.data.summary}</p>
+            <ul class="skills" aria-label="Skills">
+              {p.data.skills.map((s) => <li>{s}</li>)}
+            </ul>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</Base>
+
+<style>
+  .graph {
+    position: relative; aspect-ratio: 3 / 4; max-height: 44rem; width: 100%;
+    border: 1.5px solid var(--ink);
+    background-color: #fffdf8;
+    background-image:
+      linear-gradient(color-mix(in oklab, var(--world) 30%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklab, var(--world) 30%, transparent) 1px, transparent 1px),
+      linear-gradient(color-mix(in oklab, var(--world) 12%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklab, var(--world) 12%, transparent) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  }
+  @media (min-width: 44rem) { .graph { aspect-ratio: 16 / 10; } }
+  .graph svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .graph line { stroke: var(--ink); stroke-width: calc(1px + var(--w) * 1px); vector-effect: non-scaling-stroke; }
+
+  .node {
+    position: absolute; translate: -50% -50%;
+    display: grid; justify-items: center; gap: 0.35rem;
+    width: max-content; max-width: min(9.5rem, 40%);
+    text-decoration: none; text-align: center;
+  }
+  .pin {
+    width: calc(1.5rem + var(--d) * 0.35rem); aspect-ratio: 1; border-radius: 50%;
+    background: var(--world); border: 2px solid var(--ink);
+    box-shadow: 0 0 0 5px #fffdf8;
+    transition: scale 0.15s;
+  }
+  .node:hover .pin, .node:focus-visible .pin { scale: 1.2; background: var(--music); }
+  .name { font-family: var(--display); font-weight: 650; font-size: 0.95rem; line-height: 1.15; background: #fffdf8; padding: 0.1em 0.35em; border: 1px solid var(--ink); }
+  @media (min-width: 44rem) { .name { font-size: 1.1rem; } .node { max-width: 13rem; } }
+
+  .edge-label {
+    display: none; position: absolute; translate: -50% -50%;
+    font-family: var(--hand); font-size: 1.15rem; line-height: 1; white-space: nowrap;
+    background: #fffdf8; padding: 0 0.3em; color: var(--world); font-weight: 700;
+  }
+  @media (min-width: 52rem) { .edge-label { display: block; } }
+
+  .list-h { margin: 3rem 0 0.5rem; font-family: var(--sans); }
+  .list { list-style: none; margin: 0; padding: 0; border-top: 1.5px solid var(--ink); }
+  .list > li { border-bottom: 1px solid var(--rule); }
+  .list a { display: grid; gap: 0.4rem; padding-block: 1.25rem; text-decoration: none; }
+  .list h3 { font-size: var(--s2); }
+  .list a:hover h3 { text-decoration: underline; text-decoration-color: var(--world); text-decoration-thickness: 0.1em; }
+  .list p { margin: 0; max-width: 44rem; }
+  .skills { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0; margin: 0.3rem 0 0; }
+  .skills li { font-size: var(--s-1); font-weight: 600; padding: 0.15rem 0.6rem; border: 1.5px solid var(--world); border-radius: 999px; }
+  @media (min-width: 52rem) {
+    .list a { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); column-gap: 3rem; }
+    .list h3 { grid-row: span 2; }
+  }
+</style>

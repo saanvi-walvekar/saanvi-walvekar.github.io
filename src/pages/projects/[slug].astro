@@ -1,0 +1,52 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { fmtMonth, isoDate } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('projects');
+  return projects.map((project) => ({ params: { slug: project.id }, props: { project } }));
+}
+
+const { project } = Astro.props;
+const { title, summary, date, skills, repo, link } = project.data;
+const { Content } = await render(project);
+---
+
+<Base world="projects" title={title} description={summary} ogType="article">
+  <article class="wrap">
+    <header class="world-head">
+      <p class="eyebrow"><a href="/projects/">The Network</a> / case study</p>
+      <h1>{title}</h1>
+      <p class="lede">{summary}</p>
+    </header>
+
+    <dl class="facts">
+      <div><dt>When</dt><dd><time datetime={isoDate(date)}>{fmtMonth(date)}</time></dd></div>
+      {skills.length > 0 && <div><dt>Skills</dt><dd>{skills.join(', ')}</dd></div>}
+      {(repo || link) && (
+        <div>
+          <dt>Links</dt>
+          <dd>
+            {repo && <a href={repo}>Code</a>}
+            {repo && link && ' · '}
+            {link && <a href={link}>Live</a>}
+          </dd>
+        </div>
+      )}
+    </dl>
+
+    <div class="prose"><Content /></div>
+    <p class="back"><a href="/projects/">← Back to the network</a></p>
+  </article>
+</Base>
+
+<style>
+  .world-head h1 { font-size: var(--s3); line-height: 1; }
+  .facts { display: grid; gap: 0; margin: 0 0 2.5rem; border-block: 1.5px solid var(--ink); }
+  .facts div { display: grid; grid-template-columns: 5rem 1fr; gap: 1rem; padding-block: 0.7rem; border-bottom: 1px solid var(--rule); }
+  .facts div:last-child { border-bottom: 0; }
+  .facts dt { font-size: var(--s-1); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding-top: 0.2em; }
+  .facts dd { margin: 0; font-weight: 500; }
+  .back { margin-top: 3rem; font-weight: 600; }
+</style>

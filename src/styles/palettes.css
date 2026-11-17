@@ -1,0 +1,54 @@
+/* Three palettes on warm paper. Each gives every world its own colour plus the
+   text colour that is readable on top of it (--on-*). Choose one in
+   src/site.config.ts. World colours are for fills and marks; body text is ink. */
+
+/* Default accent when a page belongs to no world (home, 404). Kept in its own
+   low-specificity rule so the [data-world] rules below can override it. */
+:root { --world: var(--ink); --on-world: var(--paper); }
+
+:root,
+:root[data-palette='rangoli'] {
+  /* Festival powders: rani pink, sindoor, indigo, marigold, peacock, leaf. */
+  --paper: #fbf4e6;
+  --paper-2: #f3e8d2;
+  --ink: #231a14;
+  --photos: #d11f6a;   --on-photos: #fff8ee;
+  --sport: #e8542b;    --on-sport: #231a14;
+  --projects: #33379b; --on-projects: #fff8ee;
+  --music: #f2a20c;    --on-music: #231a14;
+  --words: #08766f;    --on-words: #fff8ee;
+  --wonders: #6fae45;  --on-wonders: #231a14;
+}
+
+:root[data-palette='chinar'] {
+  /* Kashmir in autumn: lake blue, chinar red, pine, saffron, plum, rose. */
+  --paper: #f7efe2;
+  --paper-2: #ece0cc;
+  --ink: #2a1e1a;
+  --photos: #2f6f8f;   --on-photos: #fbf5ea;
+  --sport: #b8321f;    --on-sport: #fbf5ea;
+  --projects: #2f5d46; --on-projects: #fbf5ea;
+  --music: #e59a1c;    --on-music: #2a1e1a;
+  --words: #6b2d5c;    --on-words: #fbf5ea;
+  --wonders: #dc7f86;  --on-wonders: #2a1e1a;
+}
+
+:root[data-palette='riso'] {
+  /* Risograph inks: loud, flat, a little off-register. */
+  --paper: #faf6ec;
+  --paper-2: #f0ead9;
+  --ink: #1d1d2b;
+  --photos: #ff4fa3;   --on-photos: #1d1d2b;
+  --sport: #ff6b2c;    --on-sport: #1d1d2b;
+  --projects: #1f6fe0; --on-projects: #fffdf6;
+  --music: #ffd21f;    --on-music: #1d1d2b;
+  --words: #7a54c7;    --on-words: #fffdf6;
+  --wonders: #0fa36b;  --on-wonders: #1d1d2b;
+}
+
+[data-world='photos']   { --world: var(--photos);   --on-world: var(--on-photos); }
+[data-world='sport']    { --world: var(--sport);    --on-world: var(--on-sport); }
+[data-world='projects'] { --world: var(--projects); --on-world: var(--on-projects); }
+[data-world='music']    { --world: var(--music);    --on-world: var(--on-music); }
+[data-world='words']    { --world: var(--words);    --on-world: var(--on-words); }
+[data-world='wonders']  { --world: var(--wonders);  --on-world: var(--on-wonders); }

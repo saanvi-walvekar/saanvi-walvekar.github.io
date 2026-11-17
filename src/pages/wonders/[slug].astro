@@ -1,0 +1,49 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { fmtDate, isoDate } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const wonders = await getCollection('wonders');
+  return wonders.map((wonder) => ({ params: { slug: wonder.id }, props: { wonder } }));
+}
+
+const { wonder } = Astro.props;
+const { question, date, short, sources } = wonder.data;
+const { Content } = await render(wonder);
+---
+
+<Base world="wonders" title={question} description={short} ogType="article">
+  <article class="wrap">
+    <header class="world-head">
+      <p class="eyebrow"><a href="/wonders/">Wandering Wonders</a> / I wondered</p>
+      <h1>{question}</h1>
+      <p class="lede"><span class="hand">Short answer:</span> {short}</p>
+    </header>
+
+    <h2 class="eyebrow part">What I found out</h2>
+    <div class="prose"><Content /></div>
+
+    {sources.length > 0 && (
+      <>
+        <h2 class="eyebrow part">Where I found it</h2>
+        <ul class="sources">
+          {sources.map((s) => <li>{s.url ? <a href={s.url}>{s.label}</a> : s.label}</li>)}
+        </ul>
+      </>
+    )}
+
+    <p class="when soft">Wondered on <time datetime={isoDate(date)}>{fmtDate(date)}</time></p>
+    <p class="back"><a href="/wonders/">← More questions</a></p>
+  </article>
+</Base>
+
+<style>
+  .world-head h1 { font-size: var(--s3); line-height: 1.02; letter-spacing: -0.03em; max-width: 18ch; }
+  .lede .hand { color: var(--ink); background: var(--world); color: var(--on-world); padding: 0 0.35em 0.1em; margin-right: 0.2em; }
+  .part { font-family: var(--sans); margin: 2.5rem 0 1rem; padding-top: 0.9rem; border-top: 1.5px solid var(--ink); max-width: var(--text); }
+  .sources { max-width: var(--text); padding-left: 1.2em; margin: 0; }
+  .sources li { margin-bottom: 0.5em; }
+  .when { margin: 2.5rem 0 0; font-size: 0.95rem; }
+  .back { margin-top: 1rem; font-weight: 600; }
+</style>

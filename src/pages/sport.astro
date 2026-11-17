@@ -1,0 +1,106 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+
+const all = (await getCollection('sport')).sort((a, b) => a.data.order - b.data.order);
+const withBody = await Promise.all(all.map(async (e) => ({ e, Content: (await render(e)).Content })));
+const basketball = withBody.filter(({ e }) => e.data.sport === 'basketball');
+const athletics = withBody.filter(({ e }) => e.data.sport === 'athletics');
+---
+
+<Base
+  world="sport"
+  title="Court & Track"
+  description="Saanvi Walvekar on the basketball court and the athletics track: teams, events and results."
+>
+  <div class="wrap">
+    <header class="world-head">
+      <p class="eyebrow">Basketball + athletics</p>
+      <h1>Court <i>&amp;</i> Track</h1>
+      <p class="lede">Two places where the only thing that counts is what you do next.</p>
+    </header>
+  </div>
+
+  <section class="court" aria-labelledby="bb-h">
+    <div class="wrap court-grid">
+      <svg class="lines" viewBox="0 0 300 280" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <path d="M10 270V10h280v260" />
+        <path d="M102 10v114h96V10" />
+        <path d="M102 124a48 48 0 0 0 96 0" />
+        <path d="M102 124a48 48 0 0 1 96 0" stroke-dasharray="7 7" />
+        <path d="M34 10v44a116 116 0 0 0 232 0V10" />
+        <path d="M128 30h44" stroke-width="4.5" />
+        <circle cx="150" cy="40" r="7.5" />
+        <path d="M118 30a32 32 0 0 0 64 0" />
+        <path d="M102 270a48 48 0 0 1 96 0" />
+      </svg>
+      <div>
+        <h2 id="bb-h">Basketball</h2>
+        <ul class="plays">
+          {basketball.map(({ e, Content }) => (
+            <li>
+              <p class="when">{e.data.when}</p>
+              <h3>{e.data.title}</h3>
+              {e.data.detail && <p class="detail">{e.data.detail}</p>}
+              <div class="body"><Content /></div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="track" aria-labelledby="at-h">
+    <div class="wrap">
+      <h2 id="at-h">Athletics</h2>
+    </div>
+    <ol class="lanes">
+      {athletics.map(({ e, Content }, i) => (
+        <li>
+          <div class="wrap lane">
+            <span class="num" aria-hidden="true">{i + 1}</span>
+            <div>
+              <p class="when">{e.data.when}</p>
+              <h3>{e.data.title}</h3>
+              {e.data.detail && <p class="detail">{e.data.detail}</p>}
+              <div class="body"><Content /></div>
+            </div>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </section>
+</Base>
+
+<style>
+  .world-head h1 i { font-weight: 400; color: var(--world); }
+  h2 { font-size: var(--s3); font-weight: 700; margin-bottom: 1.5rem; }
+  .when { font-size: var(--s-1); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 0.2rem; }
+  h3 { font-size: var(--s2); font-weight: 600; }
+  .detail { font-weight: 600; margin: 0.4rem 0 0; }
+  .body { max-width: 34rem; margin-top: 0.5rem; }
+  .body :global(p:last-child) { margin-bottom: 0; }
+
+  .court { background: var(--world); color: var(--on-world); padding-block: clamp(2rem, 6vw, 4.5rem); border-block: 1.5px solid var(--ink); }
+  .court-grid { display: grid; gap: 2rem; }
+  .lines { width: min(100%, 24rem); justify-self: center; }
+  .plays { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.75rem; }
+  .plays li { padding-left: 1.1rem; border-left: 3px solid currentColor; }
+  @media (min-width: 52rem) {
+    .court-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 4rem; align-items: center; }
+    .lines { width: 100%; }
+  }
+
+  .track { padding-top: clamp(2.5rem, 6vw, 4.5rem); }
+  .lanes { list-style: none; margin: 0; padding: 0; border-top: 3px solid var(--ink); }
+  .lanes li { border-bottom: 3px solid var(--ink); background: color-mix(in oklab, var(--world) 14%, var(--paper)); }
+  .lanes li:nth-child(even) { background: color-mix(in oklab, var(--world) 26%, var(--paper)); }
+  .lane { display: grid; grid-template-columns: auto 1fr; gap: clamp(1rem, 4vw, 3rem); align-items: center; padding-block: clamp(1.25rem, 3vw, 2rem); }
+  .num { font-family: var(--display); font-weight: 800; font-style: italic; font-size: clamp(3.5rem, 10vw, 7rem); line-height: 0.8; color: var(--world); -webkit-text-stroke: 1.5px var(--ink); min-width: 0.8em; }
+  /* staggered start, like a real track */
+  @media (min-width: 52rem) {
+    .lanes li:nth-child(2) .lane { padding-left: 4rem; }
+    .lanes li:nth-child(3) .lane { padding-left: 8rem; }
+    .lanes li:nth-child(4) .lane { padding-left: 12rem; }
+  }
+</style>

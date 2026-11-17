@@ -1,0 +1,143 @@
+---
+import { getCollection, render } from 'astro:content';
+import { getImage, Image } from 'astro:assets';
+import Base from '../../layouts/Base.astro';
+import { coverOf, fmtDate, imagesIn, isoDate } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const albums = await getCollection('photos');
+  return albums.map((album) => ({ params: { album: album.id }, props: { album } }));
+}
+
+const { album } = Astro.props;
+const { title, date, category, location, cover } = album.data;
+const { Content } = await render(album);
+
+const images = imagesIn('photos', album.id);
+// One large version per photo for the full-screen view.
+const photos = await Promise.all(
+  images.map(async (img, i) => ({
+    ...img,
+    alt: `${title}, photo ${i + 1} of ${images.length}`,
+    full: await getImage({ src: img.src, width: Math.min(img.src.width, 2000), quality: 82 }),
+  })),
+);
+
+const coverImg = coverOf('photos', album.id, cover);
+const og = coverImg ? (await getImage({ src: coverImg.src, width: 1200, height: 630, format: 'jpg' })).src : undefined;
+---
+
+<Base
+  world="photos"
+  title={title}
+  description={`${title}: a photo album by Saanvi Walvekar${location ? `, ${location}` : ''}.`}
+  ogImage={og}
+  ogType="article"
+>
+  <article class="wrap">
+    <header class="world-head">
+      <p class="eyebrow"><a href="/photos/">Postcards</a> / {category}</p>
+      <h1>{title}</h1>
+      <p class="when soft">
+        <time datetime={isoDate(date)}>{fmtDate(date)}</time>{location && <span> · {location}</span>}
+      </p>
+    </header>
+
+    <div class="note prose"><Content /></div>
+
+    {photos.length > 0 ? (
+      <ul class="masonry">
+        {photos.map((p, i) => (
+          <li>
+            <a href={p.full.src} data-i={i}>
+              <Image
+                src={p.src}
+                alt={p.alt}
+                widths={[320, 480, 720, 1080]}
+                sizes="(min-width: 64rem) 24vw, (min-width: 40rem) 32vw, 46vw"
+                loading={i < 4 ? 'eager' : 'lazy'}
+              />
+            </a>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="empty hand">The photos for this album are still being sorted. Check back soon.</p>
+    )}
+
+    <p class="back"><a href="/photos/">← All postcards</a></p>
+  </article>
+
+  <dialog class="lightbox" aria-label="Photo viewer">
+    <img alt="" />
+    <button type="button" class="prev" aria-label="Previous photo">‹</button>
+    <button type="button" class="next" aria-label="Next photo">›</button>
+    <button type="button" class="close" aria-label="Close">×</button>
+  </dialog>
+</Base>
+
+<script>
+  // Progressive enhancement: without JS each thumbnail is a plain link to the large photo.
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('.masonry a')];
+  const dialog = document.querySelector<HTMLDialogElement>('.lightbox')!;
+  const big = dialog.querySelector('img')!;
+  let at = 0;
+
+  function show(i: number) {
+    at = (i + links.length) % links.length;
+    big.src = links[at].href;
+    big.alt = links[at].querySelector('img')?.alt ?? '';
+  }
+
+  links.forEach((a, i) =>
+    a.addEventListener('click', (e) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+      e.preventDefault();
+      show(i);
+      dialog.showModal();
+    }),
+  );
+  dialog.querySelector('.prev')!.addEventListener('click', () => show(at - 1));
+  dialog.querySelector('.next')!.addEventListener('click', () => show(at + 1));
+  dialog.querySelector('.close')!.addEventListener('click', () => dialog.close());
+  dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+  dialog.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') show(at - 1);
+    if (e.key === 'ArrowRight') show(at + 1);
+  });
+  dialog.addEventListener('close', () => { big.removeAttribute('src'); links[at]?.focus(); });
+</script>
+
+<style>
+  .world-head h1 { font-size: var(--s3); line-height: 1; }
+  .when { margin: 1rem 0 0; font-weight: 500; }
+  .note { margin-bottom: 2.5rem; font-family: var(--hand); font-size: 1.6rem; line-height: 1.35; }
+
+  .masonry { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 0.6rem; }
+  .masonry li { break-inside: avoid; margin-bottom: 0.6rem; }
+  .masonry a { display: block; background: var(--paper-2); }
+  .masonry :global(img) { width: 100%; transition: opacity 0.15s; }
+  .masonry a:hover :global(img) { opacity: 0.88; }
+  @media (min-width: 40rem) { .masonry { columns: 3; column-gap: 0.9rem; } .masonry li { margin-bottom: 0.9rem; } }
+  @media (min-width: 64rem) { .masonry { columns: 4; } }
+
+  .empty { font-size: 1.7rem; padding: 3rem 1.5rem; border: 2px dashed var(--ink); text-align: center; rotate: -0.5deg; }
+  .back { margin-top: 3rem; font-weight: 600; }
+
+  .lightbox {
+    width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
+    background: color-mix(in oklab, var(--ink) 94%, transparent); color: var(--paper);
+  }
+  .lightbox[open] { display: grid; place-items: center; }
+  .lightbox::backdrop { background: var(--ink); }
+  .lightbox img { max-width: 100vw; max-height: 100dvh; object-fit: contain; }
+  .lightbox button {
+    position: fixed; width: 3rem; height: 3rem; display: grid; place-items: center;
+    border: 0; border-radius: 50%; background: color-mix(in oklab, var(--ink) 60%, transparent); color: var(--paper);
+    font-size: 1.8rem; line-height: 1; cursor: pointer;
+  }
+  .lightbox button:focus-visible { outline-color: var(--paper); }
+  .close { top: 0.75rem; right: 0.75rem; }
+  .prev { left: 0.5rem; top: 50%; translate: 0 -50%; }
+  .next { right: 0.5rem; top: 50%; translate: 0 -50%; }
+</style>
