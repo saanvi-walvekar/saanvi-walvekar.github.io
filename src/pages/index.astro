@@ -1,8 +1,9 @@
 ---
 import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
 import Base from '../layouts/Base.astro';
 import { site, worlds } from '../site.config';
-import { fmtMonth, isoDate } from '../lib/content';
+import { byNewest, coverOf, fmtMonth, isoDate } from '../lib/content';
 
 const [photos, projects, music, words, wonders] = await Promise.all([
   getCollection('photos'),
@@ -15,9 +16,9 @@ const [photos, projects, music, words, wonders] = await Promise.all([
 const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 const counts: Record<string, string> = {
   photos: plural(photos.length, 'album'),
-  sport: 'two sports',
+  sport: 'Two sports',
   projects: plural(projects.length, 'project'),
-  music: music.length ? plural(music.length, 'clip') : 'tuning up',
+  music: music.length ? plural(music.length, 'clip') : 'In progress',
   words: plural(words.length, 'piece'),
   wonders: plural(wonders.length, 'question'),
 };
@@ -30,172 +31,128 @@ const latest = [
   ...wonders.map((e) => ({ date: e.data.date, world: 'wonders', title: e.data.question, href: `/wonders/${e.id}/` })),
 ]
   .sort((a, b) => b.date.getTime() - a.date.getTime())
-  .slice(0, 6);
+  .slice(0, 5);
 
 const worldName = (id: string) => worlds.find((w) => w.id === id)!.name;
 const [first, ...rest] = site.name.split(' ');
-const beats = Array.from({ length: 16 }, (_, i) => i);
 
-// The rolling line under the name: one phrase per world.
-const does = [
-  { world: 'photos', text: 'takes photographs' },
-  { world: 'sport', text: 'plays basketball' },
-  { world: 'music', text: 'plays the tabla' },
-  { world: 'words', text: 'writes poems' },
-  { world: 'projects', text: 'optimises things' },
-  { world: 'wonders', text: 'asks too many questions' },
-  { world: 'sport', text: 'runs track' },
-];
-const ticker = ['Photographs', 'Basketball', 'Athletics', 'Tabla', 'Poems', 'Operations research', 'Questions'];
+// The Postcards plate shows the cover of the newest album that has photos;
+// until one exists it falls back to a drawn plate like the others.
+const photoPlate = [...photos]
+  .sort(byNewest)
+  .map((a) => coverOf('photos', a.id, a.data.cover))
+  .find(Boolean);
+
+const updated = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(new Date());
 ---
 
-<Base footLinks={false}>
+<Base>
   <script is:inline>document.documentElement.classList.add('js');</script>
 
-  <section class="hero wrap">
-    <div class="shapes" aria-hidden="true">
-      <i class="s sun"></i>
-      <i class="s ring"></i>
-      <i class="s dots"></i>
-      <svg class="s squiggle" viewBox="0 0 220 60" fill="none"><path d="M4 30c18-34 36-34 54 0s36 34 54 0 36-34 54 0 36 34 50 4" stroke="currentColor" stroke-width="9" stroke-linecap="round" /></svg>
-      <svg class="s star" viewBox="0 0 100 100"><path d="M50 2l9 30 30-12-17 27 26 17-31 4 3 31-20-23-20 23 3-31-31-4 26-17-17-27 30 12z" fill="currentColor" /></svg>
-    </div>
-
-    <h1>
-      <span class="line"><span class="l1">{first}</span></span>
-      <span class="line"><span class="l2">{rest.join(' ')}</span></span>
-    </h1>
-
-    <p class="does">
-      <span class="vh">who {does.map((d) => d.text).join(', ')}.</span>
-      <span aria-hidden="true">who</span>
-      <span class="roll" aria-hidden="true">
-        <span class="reel">
-          {[...does, does[0]].map((d) => <span data-world={d.world}><b>{d.text}</b></span>)}
-        </span>
-      </span>
-    </p>
-
-    <svg class="badge" viewBox="0 0 120 120" aria-hidden="true">
-      <defs><path id="circ" d="M60 60m-44 0a44 44 0 1 1 88 0a44 44 0 1 1-88 0" /></defs>
-      <circle cx="60" cy="60" r="58" />
-      <text><textPath href="#circ" textLength="270">IEOR · IIT BOMBAY · IEOR · IIT BOMBAY ·</textPath></text>
-      <path class="pip" d="M60 40l5 15 15 5-15 5-5 15-5-15-15-5 15-5z" />
-    </svg>
-
-    <div class="about">
-      <p>{site.intro}</p>
-      <ul>
-        {site.links.map((l) => <li><a href={l.href} rel="me">{l.label}</a></li>)}
-        {site.resume && <li><a href={site.resume}>Résumé</a></li>}
-      </ul>
-    </div>
-  </section>
-
-  <div class="ticker" aria-hidden="true">
-    <div class="track">
-      {[0, 1].map(() => (
-        <ul>
-          {ticker.map((t, i) => (
-            <li>
-              {t}
-              <svg viewBox="0 0 100 100" style={`--c:var(--${worlds[i % worlds.length].id})`}><path d="M50 2l9 30 30-12-17 27 26 17-31 4 3 31-20-23-20 23 3-31-31-4 26-17-17-27 30 12z" /></svg>
-            </li>
-          ))}
-        </ul>
-      ))}
-    </div>
-  </div>
-
-  <section class="wrap" aria-labelledby="worlds-h">
-    <header class="sec-head" data-reveal>
-      <h2 id="worlds-h">Pick a world<i>.</i></h2>
-      <p class="hand">six of them, all mine</p>
+  <div class="wrap">
+    <header class="mast">
+      <span>Portfolio</span>
+      <span>{site.affiliation}</span>
+      <span>Updated {updated}</span>
     </header>
 
-    <ul class="worlds">
-      {worlds.map((w, i) => (
-        <li class={`tile t-${w.id}`} data-world={w.id} data-reveal>
-          <a href={w.href}>
-            <div class="face">
-              <div class="art" aria-hidden="true">
-                {w.id === 'photos' && (
-                  <div class="pc">
-                    <div class="pc-img">
-                      <i class="pc-sun"></i>
-                      <svg viewBox="0 0 120 80" preserveAspectRatio="none"><path class="m1" d="M0 80V52l26-26 20 22 18-24 26 34 30-20v42z" /><path class="m2" d="M0 80V64l34-22 22 16 26-22 38 26v18z" /></svg>
-                    </div>
-                    <div class="pc-back"><span class="stamp"></span><i></i><i></i><i></i></div>
+    <section class="hero">
+      <h1>
+        <span class="line"><span>{first}</span></span>
+        <span class="line l2"><em>{rest.join(' ')}</em></span>
+      </h1>
+
+      <div class="key" aria-hidden="true">
+        {worlds.map((w) => <i data-world={w.id}></i>)}
+      </div>
+
+      <div class="stand">
+        <p class="intro">{site.intro}</p>
+        <div class="else">
+          <h2 class="label">Elsewhere</h2>
+          <ul>
+            {site.links.map((l) => <li><a href={l.href} rel="me">{l.label}</a></li>)}
+            {site.resume && <li><a href={site.resume}>Résumé</a></li>}
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="contents-h">
+      <header class="sec" data-reveal>
+        <h2 id="contents-h" class="label">Contents</h2>
+        <span class="label">Six sections</span>
+      </header>
+
+      <ul class="feats">
+        {worlds.map((w, i) => (
+          <li class={`feat f-${w.id}`} data-world={w.id} data-reveal>
+            <a href={w.href}>
+              <div class="plate">
+                {w.id === 'photos' && photoPlate ? (
+                  <Image src={photoPlate.src} alt="" widths={[480, 800, 1200]} sizes="(min-width: 56rem) 55vw, 92vw" loading="eager" />
+                ) : (
+                  <div class="art" aria-hidden="true">
+                    {w.id === 'photos' && (
+                      <svg viewBox="0 0 120 90" fill="none" stroke="currentColor"><rect x="14" y="12" width="92" height="66" /><circle cx="82" cy="34" r="9" /><path d="M14 66 44 40l16 14 12-10 34 26" /></svg>
+                    )}
+                    {w.id === 'sport' && (
+                      <svg viewBox="0 0 90 120" fill="none" stroke="currentColor"><path d="M8 116V8h74v108" /><path d="M32 8v38h26V8" /><path d="M32 46a13 13 0 0 0 26 0" /><path d="M16 8v14a29 29 0 0 0 58 0V8" /><circle cx="45" cy="16" r="3" /><path d="M8 116h74" /></svg>
+                    )}
+                    {w.id === 'projects' && (
+                      <svg viewBox="0 0 100 100" fill="none" stroke="currentColor"><path d="M20 26 50 48 80 22M50 48 26 80M50 48 78 76M26 80h52" /><g fill="var(--world)"><circle cx="20" cy="26" r="5" /><circle cx="50" cy="48" r="8" /><circle cx="80" cy="22" r="4" /><circle cx="26" cy="80" r="4" /><circle cx="78" cy="76" r="6" /></g></svg>
+                    )}
+                    {w.id === 'music' && (
+                      <svg viewBox="0 0 160 100" fill="none" stroke="currentColor">
+                        {Array.from({ length: 16 }, (_, b) => {
+                          const group = Math.floor(b / 4);
+                          return <circle cx={14 + b * 8.2 + group * 3.2} cy="50" r="2.9" fill={group === 2 ? 'none' : 'currentColor'} />;
+                        })}
+                        <path d="M10 64h140" />
+                      </svg>
+                    )}
+                    {w.id === 'words' && <p>a line I kept<br />turning over</p>}
+                    {w.id === 'wonders' && <span class="q">?</span>}
                   </div>
                 )}
-                {w.id === 'sport' && (
-                  <>
-                    <svg class="court" viewBox="0 0 200 150" fill="none" stroke="currentColor" stroke-width="2.4">
-                      <path d="M10 150V10h180v140" /><path d="M70 10v66h60V10" /><path d="M70 76a30 30 0 0 0 60 0" /><path d="M70 76a30 30 0 0 1 60 0" stroke-dasharray="5 5" />
-                      <path d="M28 10v32a72 72 0 0 0 144 0V10" /><path d="M88 22h24" stroke-width="4" /><circle cx="100" cy="29" r="5" />
-                    </svg>
-                    <span class="ball"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2"><circle cx="20" cy="20" r="18" fill="var(--paper)" /><path d="M2 20h36M20 2v36M7 7c7 7 7 19 0 26M33 7c-7 7-7 19 0 26" /></svg></span>
-                  </>
-                )}
-                {w.id === 'projects' && (
-                  <svg class="net" viewBox="0 0 200 130" fill="none">
-                    <g class="edges" stroke="var(--ink)" stroke-width="2"><path pathLength="1" d="M34 34 96 62" /><path pathLength="1" d="M96 62 160 28" /><path pathLength="1" d="M96 62 48 106" /><path pathLength="1" d="M96 62 162 102" /><path pathLength="1" d="M48 106h114" /></g>
-                    <g class="nodes" stroke="var(--ink)" stroke-width="2"><circle cx="34" cy="34" r="9" fill="var(--photos)" /><circle cx="96" cy="62" r="15" fill="var(--projects)" /><circle cx="160" cy="28" r="8" fill="var(--music)" /><circle cx="48" cy="106" r="8" fill="var(--wonders)" /><circle cx="162" cy="102" r="11" fill="var(--sport)" /></g>
-                  </svg>
-                )}
-                {w.id === 'music' && (
-                  <div class="beats">{beats.map((b) => <i class:list={{ khali: b >= 8 && b < 12 }} style={`--i:${b}`} />)}</div>
-                )}
-                {w.id === 'words' && <p class="hand"><span>a line I kept</span><span>turning over —</span></p>}
-                {w.id === 'wonders' && <span class="q">?</span>}
               </div>
-              <span class="no" aria-hidden="true">{i + 1}</span>
-              <div class="meta">
-                <h3>{w.name}</h3>
-                <p>{w.kind} · {counts[w.id]}</p>
-              </div>
-            </div>
-          </a>
-        </li>
-      ))}
-    </ul>
-  </section>
-
-  {latest.length > 0 && (
-    <section class="wrap latest" aria-labelledby="latest-h">
-      <header class="sec-head" data-reveal>
-        <h2 id="latest-h">Lately<i>.</i></h2>
-        <p class="hand">what I added last</p>
-      </header>
-      <ol>
-        {latest.map((l, i) => (
-          <li data-world={l.world} data-reveal style={`--d:${i * 60}ms`}>
-            <a href={l.href}>
-              <time datetime={isoDate(l.date)}>{fmtMonth(l.date)}</time>
-              <span class="w">{worldName(l.world)}</span>
-              <span class="t">{l.title}</span>
-              <span class="go" aria-hidden="true">→</span>
+              <p class="kicker label"><span>0{i + 1}</span>{w.kind}</p>
+              <h3>{w.name}</h3>
+              <p class="blurb">{w.blurb}</p>
+              <p class="count label">{counts[w.id]} <span aria-hidden="true">→</span></p>
             </a>
           </li>
         ))}
-      </ol>
+      </ul>
     </section>
-  )}
 
-  <section class="wrap hi" aria-labelledby="hi-h">
-    <p class="hand" id="hi-h" data-reveal>say hi —</p>
-    <ul>
-      {site.links.map((l, i) => (
-        <li data-world={worlds[i % worlds.length].id} data-reveal style={`--d:${i * 70}ms`}>
-          <a href={l.href} rel="me">{l.label}<span aria-hidden="true">↗</span></a>
-        </li>
-      ))}
-    </ul>
-  </section>
+    {latest.length > 0 && (
+      <section class="recent" aria-labelledby="recent-h">
+        <header class="sec" data-reveal>
+          <h2 id="recent-h" class="label">Recently added</h2>
+        </header>
+        <ol>
+          {latest.map((l, i) => (
+            <li data-world={l.world} data-reveal style={`--d:${i * 50}ms`}>
+              <a href={l.href}>
+                <time class="label" datetime={isoDate(l.date)}>{fmtMonth(l.date)}</time>
+                <span class="w label">{worldName(l.world)}</span>
+                <span class="t">{l.title}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
+
+    <p class="closing" data-reveal>
+      If something here made you curious, <a href={site.links.find((l) => l.label === 'Email')?.href ?? site.links[0].href}>write to me</a>.
+    </p>
+  </div>
 </Base>
 
 <script>
-  // Reveal on scroll. Content is fully visible without JS (the .js class gates the hidden state).
+  // Fade sections in as they scroll into view. Without JS everything is simply visible.
   const io = new IntersectionObserver(
     (entries) =>
       entries.forEach((e) => {
@@ -203,265 +160,119 @@ const ticker = ['Photographs', 'Basketball', 'Athletics', 'Tabla', 'Poems', 'Ope
         e.target.classList.add('in');
         io.unobserve(e.target);
       }),
-    { rootMargin: '0px 0px -8% 0px' },
+    { rootMargin: '0px 0px -6% 0px' },
   );
   document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
-
-  // The printed shapes drift a little with the pointer (mouse only, and not if motion is reduced).
-  const hero = document.querySelector<HTMLElement>('.hero');
-  if (hero && matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)').matches) {
-    let frame = 0;
-    addEventListener(
-      'pointermove',
-      (e) => {
-        if (frame) return;
-        frame = requestAnimationFrame(() => {
-          frame = 0;
-          hero.style.setProperty('--mx', (e.clientX / innerWidth - 0.5).toFixed(3));
-          hero.style.setProperty('--my', (e.clientY / innerHeight - 0.5).toFixed(3));
-        });
-      },
-      { passive: true },
-    );
-  }
 </script>
 
 <style>
-  /* ============ hero: a riso print, slightly off-register ============ */
-  .hero {
-    --mx: 0; --my: 0;
-    position: relative; isolation: isolate;
-    padding-block: clamp(2.5rem, 9vw, 6.5rem) clamp(2.5rem, 6vw, 4.5rem);
-  }
-  h1 { font-size: clamp(4rem, 17.5vw, 15rem); font-weight: 800; line-height: 0.84; letter-spacing: -0.055em; }
-  .line { display: block; overflow: clip; overflow-clip-margin: 0.12em; padding-block: 0.02em 0.1em; }
-  .line > span { display: inline-block; animation: rise 0.9s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
-  .line:nth-child(2) > span { animation-delay: 0.12s; }
-  .l1 { text-shadow: 0.045em 0.04em 0 var(--photos); }
-  .l2 {
-    font-style: italic; font-weight: 600; margin-left: 0.42em; padding-right: 0.08em;
-    color: transparent; -webkit-text-stroke: 0.018em var(--ink);
-    text-shadow: -0.03em 0.035em 0 var(--projects);
-  }
-  @keyframes rise { from { translate: 0 105%; rotate: 4deg; } }
+  .label { font-family: var(--sans); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; margin: 0; }
 
-  .does {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 0.2em 0.45em;
-    margin: clamp(1rem, 3vw, 2rem) 0 0;
-    font-family: var(--display); font-size: clamp(1.45rem, 4.6vw, 3rem); font-weight: 500; font-style: italic; line-height: 1.3;
-    animation: fade 0.8s 0.5s both;
-  }
-  .roll { display: inline-block; height: 1.3em; overflow: hidden; }
-  .reel { display: flex; flex-direction: column; animation: roll 17.5s cubic-bezier(0.7, 0, 0.2, 1) infinite; }
-  .reel span { height: 1.3em; white-space: nowrap; }
-  .reel b { font-weight: 700; font-style: normal; background: var(--world); color: var(--on-world); padding: 0 0.3em; box-decoration-break: clone; }
-  @keyframes roll {
-    0%, 11% { translate: 0 0; }
-    14.3%, 25.3% { translate: 0 -1.3em; }
-    28.6%, 39.6% { translate: 0 -2.6em; }
-    42.9%, 53.9% { translate: 0 -3.9em; }
-    57.2%, 68.2% { translate: 0 -5.2em; }
-    71.5%, 82.5% { translate: 0 -6.5em; }
-    85.8%, 96.8% { translate: 0 -7.8em; }
-    100% { translate: 0 -9.1em; }
-  }
-  @keyframes fade { from { opacity: 0; translate: 0 0.6rem; } }
+  /* ---------- masthead ---------- */
+  .mast { display: flex; justify-content: space-between; gap: 1rem; padding-block: 1.1rem; border-bottom: 1px solid var(--ink); }
+  .mast span { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; }
+  .mast span:nth-child(3) { display: none; }
+  @media (min-width: 40rem) { .mast span:nth-child(3) { display: inline; } }
 
-  .about { margin-top: clamp(1.75rem, 4vw, 3rem); max-width: 33rem; font-size: var(--s1); line-height: 1.45; animation: fade 0.8s 0.7s both; }
-  .about ul { display: flex; flex-wrap: wrap; gap: 0.1rem 1.4rem; list-style: none; padding: 0; margin: 0; font-size: 1rem; font-weight: 700; }
-  .about li:nth-child(4n + 1) { --world: var(--projects); }
-  .about li:nth-child(4n + 2) { --world: var(--photos); }
-  .about li:nth-child(4n + 3) { --world: var(--wonders); }
-  .about li:nth-child(4n) { --world: var(--sport); }
-  .about a { display: inline-block; padding-block: 0.6rem; }
+  /* ---------- hero ---------- */
+  .hero { padding-block: clamp(3rem, 9vw, 7.5rem) clamp(3rem, 7vw, 6rem); }
+  h1 { font-size: clamp(3.6rem, 14.5vw, 12.5rem); font-weight: 400; line-height: 0.9; letter-spacing: -0.045em; }
+  .line { display: block; overflow: clip; overflow-clip-margin: 0.14em; padding-bottom: 0.12em; }
+  .line > * { display: inline-block; animation: rise 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .l2 { padding-left: 0.9em; margin-top: -0.06em; }
+  .l2 em { font-weight: 300; animation-delay: 0.12s; padding-right: 0.06em; }
+  @keyframes rise { from { translate: 0 110%; } }
 
-  /* printed shapes: flat inks that overprint (multiply) where they cross */
-  .shapes { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
-  .s { position: absolute; mix-blend-mode: multiply; translate: calc(var(--mx) * var(--k, 20) * 1px) calc(var(--my) * var(--k, 20) * 1px); transition: translate 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
-  .sun { --k: -34; right: -3%; top: 3%; width: clamp(11rem, 40vw, 30rem); aspect-ratio: 1; border-radius: 50%; background: var(--music); animation: pop 1s 0.15s cubic-bezier(0.2, 1.3, 0.4, 1) both, bob 9s 1.2s ease-in-out infinite alternate; }
-  .ring { --k: 46; right: 20%; top: clamp(8rem, 26vw, 19rem); width: clamp(6.5rem, 19vw, 14rem); aspect-ratio: 1; border-radius: 50%; border: clamp(1.1rem, 3.2vw, 2.4rem) solid var(--projects); animation: pop 1s 0.35s cubic-bezier(0.2, 1.3, 0.4, 1) both, bob 7s 1.4s ease-in-out infinite alternate-reverse; }
-  .dots { --k: 22; right: 3%; bottom: 6%; width: clamp(8rem, 26vw, 19rem); aspect-ratio: 5 / 3; rotate: -8deg; background: radial-gradient(circle, var(--photos) 34%, transparent 36%) 0 0 / 0.8rem 0.8rem; animation: fade 1s 0.6s both; }
-  .squiggle { --k: -18; color: var(--wonders); width: clamp(7rem, 18vw, 13rem); left: 44%; bottom: 3%; rotate: -6deg; animation: fade 1s 0.8s both; }
-  .star { --k: 60; color: var(--sport); width: clamp(2.6rem, 6vw, 4.6rem); left: clamp(11.5rem, 47vw, 39rem); top: clamp(1rem, 4vw, 3rem); animation: pop 0.8s 0.9s cubic-bezier(0.2, 1.5, 0.4, 1) both, spin 24s linear infinite; }
-  @keyframes pop { from { scale: 0; } }
-  @keyframes bob { to { transform: translateY(-14px) rotate(3deg); } }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  /* the only colour in the hero: one hairline in the six section colours */
+  .key { display: grid; grid-template-columns: repeat(6, 1fr); height: 5px; margin-top: clamp(2rem, 5vw, 4rem); transform-origin: left; animation: draw 1.2s 0.5s cubic-bezier(0.3, 0.7, 0.2, 1) both; }
+  .key i { background: var(--world); }
+  @keyframes draw { from { scale: 0 1; } }
 
-  .badge {
-    position: absolute; right: clamp(0.25rem, 6vw, 6rem); top: clamp(9.5rem, 30vw, 21rem);
-    width: clamp(5.6rem, 13vw, 9rem); rotate: 12deg;
-    animation: pop 0.8s 1s cubic-bezier(0.2, 1.4, 0.4, 1) both;
-  }
-  .badge circle { fill: var(--ink); }
-  .badge text { fill: var(--paper); font: 700 12.5px var(--sans); letter-spacing: 0.08em; transform-origin: 60px 60px; animation: spin 26s linear infinite; }
-  .badge .pip { fill: var(--music); }
-
-  /* on wide screens the badge sits beside the intro, clear of the name */
-  @media (min-width: 48rem) { .badge { top: auto; bottom: clamp(4rem, 11vw, 9rem); right: clamp(2rem, 9vw, 9rem); } }
-  @media (max-width: 47.99rem) {
-    .badge { top: 10.75rem; }
-    .dots, .squiggle { display: none; }
-    .ring { right: 34%; }
+  .stand { display: grid; gap: 2.5rem; margin-top: clamp(1.75rem, 4vw, 3rem); animation: fade 1s 0.8s both; }
+  .intro { margin: 0; max-width: 36rem; font-family: var(--display); font-weight: 300; font-size: clamp(1.4rem, 2.3vw + 0.6rem, 2.15rem); line-height: 1.32; letter-spacing: -0.015em; }
+  .else ul { list-style: none; margin: 0.9rem 0 0; padding: 0; }
+  .else li { border-top: 1px solid var(--rule); }
+  .else li:last-child { border-bottom: 1px solid var(--rule); }
+  .else a { display: flex; justify-content: space-between; padding-block: 0.7rem; text-decoration: none; font-size: 0.98rem; font-weight: 500; transition: padding 0.3s ease; }
+  .else a::after { content: '↗'; opacity: 0.45; transition: opacity 0.3s; }
+  .else a:hover { padding-left: 0.5rem; }
+  .else a:hover::after { opacity: 1; }
+  @keyframes fade { from { opacity: 0; translate: 0 0.75rem; } }
+  @media (min-width: 56rem) {
+    .stand { grid-template-columns: repeat(12, 1fr); column-gap: 1.5rem; }
+    .else { grid-column: 1 / 4; grid-row: 1; }
+    .intro { grid-column: 6 / 13; grid-row: 1; }
   }
 
-  /* ============ ticker ============ */
-  .ticker { width: 106vw; margin-left: -3vw; rotate: -1.6deg; background: var(--ink); color: var(--paper); overflow: hidden; border-block: 2px solid var(--ink); }
-  .track { display: flex; width: max-content; animation: slide 36s linear infinite; }
-  .ticker:hover .track { animation-play-state: paused; }
-  .ticker ul { display: flex; list-style: none; margin: 0; padding: 0; }
-  .ticker li { display: flex; align-items: center; gap: 1.1rem; padding: 0.7rem 0 0.75rem 1.1rem; font-family: var(--display); font-style: italic; font-weight: 600; font-size: clamp(1.25rem, 3.2vw, 2rem); white-space: nowrap; }
-  .ticker svg { width: 0.9em; fill: var(--c); animation: spin 8s linear infinite; }
-  @keyframes slide { to { translate: -50% 0; } }
+  /* ---------- section header ---------- */
+  .sec { display: flex; justify-content: space-between; align-items: baseline; padding-top: 1.1rem; margin-bottom: clamp(2rem, 5vw, 3.5rem); border-top: 1px solid var(--ink); }
 
-  /* ============ section headings ============ */
-  .sec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 1.25rem; margin: clamp(3.5rem, 9vw, 7rem) 0 clamp(1.5rem, 4vw, 2.75rem); }
-  .sec-head h2 { font-size: clamp(2.6rem, 9vw, 6rem); font-weight: 700; letter-spacing: -0.04em; line-height: 0.95; }
-  .sec-head h2 i { font-style: normal; color: var(--photos); }
-  .sec-head .hand { margin: 0; font-size: clamp(1.4rem, 3vw, 2rem); rotate: -3deg; color: var(--projects); font-weight: 700; }
+  /* ---------- contents: six features, set like magazine openers ---------- */
+  .feats { list-style: none; margin: 0; padding: 0; display: grid; gap: 3.5rem; }
+  .feat a { display: block; text-decoration: none; }
+  .plate { position: relative; aspect-ratio: 5 / 4; overflow: hidden; background: var(--world); color: var(--on-world); }
+  .plate :global(img) { width: 100%; height: 100%; object-fit: cover; transition: scale 0.9s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .art { position: absolute; inset: 0; display: grid; place-items: center; transition: scale 0.9s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .art svg { width: 46%; max-height: 62%; stroke-width: 1.1; overflow: visible; }
+  .art svg * { vector-effect: non-scaling-stroke; }
+  .f-music .art svg { width: 72%; }
+  .art p { margin: 0; text-align: center; font-family: var(--display); font-style: italic; font-weight: 300; font-size: clamp(1.5rem, 7cqi, 2.6rem); line-height: 1.25; padding-block: 1.1em; border-block: 1px solid currentColor; }
+  .q { font-family: var(--display); font-style: italic; font-weight: 200; font-size: clamp(9rem, 46cqi, 20rem); line-height: 1; }
+  .plate { container-type: inline-size; }
+  .feat a:hover .art, .feat a:hover .plate :global(img) { scale: 1.045; }
 
-  /* ============ the six worlds: a pinned-up collage ============ */
-  .worlds { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.6rem; }
-  .tile { --r: 0deg; min-width: 0; rotate: var(--r); container-type: inline-size; }
-  .tile:nth-child(odd) { --r: -1.1deg; margin-right: 5%; }
-  .tile:nth-child(even) { --r: 1.2deg; margin-left: 5%; }
-  .tile a { position: relative; display: block; height: 100%; text-decoration: none; color: var(--on-world); transition: translate 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.3), rotate 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.3); }
-  /* the ink outline is printed a few pixels off the colour block; hovering snaps it into register */
-  .tile a::after { content: ''; position: absolute; inset: 0; border: 2px solid var(--ink); border-radius: 10px; translate: 7px 7px; pointer-events: none; transition: translate 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.3); }
-  .tile a:hover, .tile a:focus-visible { translate: 0 -6px; rotate: calc(var(--r) * -0.6); }
-  .tile a:hover::after, .tile a:focus-visible::after { translate: 0 0; }
-  .face { position: relative; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; min-height: 15.5rem; padding: 1.15rem; overflow: hidden; border-radius: 10px; background: var(--world); }
-  /* halftone shading in one corner */
-  .face::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle, color-mix(in oklab, var(--ink) 30%, transparent) 30%, transparent 33%) 0 0 / 0.5rem 0.5rem; -webkit-mask-image: linear-gradient(20deg, #000, transparent 45%); mask-image: linear-gradient(20deg, #000, transparent 45%); pointer-events: none; }
-  .art { position: absolute; inset: 0; pointer-events: none; }
-  .no { position: absolute; top: 0.4rem; left: 1rem; font-family: var(--display); font-style: italic; font-weight: 800; font-size: 3.4rem; line-height: 1; color: transparent; -webkit-text-stroke: 1.5px var(--on-world); opacity: 0.9; }
-  .meta { position: relative; }
-  .meta h3 { font-size: clamp(1.9rem, 11cqi, 3.6rem); font-weight: 700; letter-spacing: -0.03em; line-height: 0.95; margin-bottom: 0.4rem; }
-  .meta p { margin: 0; font-size: 0.95rem; font-weight: 600; }
+  .kicker { display: flex; gap: 1.1rem; margin-top: 1.1rem; }
+  .kicker span { font-variant-numeric: tabular-nums; }
+  .feat h3 { font-size: clamp(2.2rem, 4.4vw + 0.8rem, 4.2rem); font-weight: 400; letter-spacing: -0.035em; line-height: 1; margin: 0.6rem 0 0.7rem; }
+  .feat h3 { background: linear-gradient(var(--world), var(--world)) no-repeat 0 100% / 0% 2px; width: fit-content; padding-bottom: 0.08em; transition: background-size 0.5s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .feat a:hover h3, .feat a:focus-visible h3 { background-size: 100% 2px; }
+  .blurb { margin: 0; max-width: 26rem; color: var(--ink-soft); }
+  .count { margin-top: 1rem; display: flex; gap: 0.6rem; align-items: center; }
+  .count span { transition: translate 0.4s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .feat a:hover .count span { translate: 0.4rem 0; }
 
-  /* --- postcards --- */
-  .t-photos .face { min-height: 21rem; }
-  .pc { position: absolute; right: 5%; top: 8%; width: min(76%, 32rem); aspect-ratio: 3 / 2; display: grid; grid-template-columns: 1.15fr 1fr; background: var(--paper); color: var(--ink); border: 2px solid var(--ink); rotate: 5deg; box-shadow: 6px 7px 0 color-mix(in oklab, var(--ink) 40%, transparent); transition: rotate 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.3), translate 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.3); }
-  .tile a:hover .pc { rotate: -3deg; translate: -3% -4%; }
-  .pc-img { position: relative; margin: 6%; background: color-mix(in oklab, var(--music) 35%, var(--paper)); overflow: hidden; }
-  .pc-sun { position: absolute; right: 14%; top: 12%; width: 26%; aspect-ratio: 1; border-radius: 50%; background: var(--sport); }
-  .pc-img svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .pc-img path { mix-blend-mode: multiply; }
-  .m1 { fill: var(--projects); }
-  .m2 { fill: var(--music); }
-  .pc-back { border-left: 1.5px solid var(--rule); padding: 12% 10%; display: flex; flex-direction: column; justify-content: flex-end; gap: 14%; }
-  .pc-back i { height: 1.5px; background: var(--ink); opacity: 0.45; }
-  .stamp { position: absolute; top: 9%; right: 4.5%; width: 15%; aspect-ratio: 4 / 5; background: var(--wonders); outline: 3px dotted var(--paper); outline-offset: -1px; border: 1px solid var(--ink); }
-  .tile a:hover .stamp { animation: wiggle 0.5s ease-in-out; }
-  @keyframes wiggle { 30% { rotate: -10deg; } 65% { rotate: 7deg; } }
-
-  /* --- court & track --- */
-  .court { position: absolute; top: -8%; right: 6%; width: min(62%, 17rem); opacity: 0.85; }
-  .ball { position: absolute; right: calc(6% + min(31%, 8.5rem) - 1.4rem); top: 9%; width: 2.8rem; }
-  .tile.in .ball { animation: bounce 0.55s cubic-bezier(0.45, 0, 0.9, 0.55) 8 alternate; }
-  .tile a:hover .ball { animation: bounce 0.5s cubic-bezier(0.45, 0, 0.9, 0.55) infinite alternate; }
-  @keyframes bounce { to { translate: 0 5.2rem; } }
-
-  /* --- the network: on graph paper, edges draw themselves in --- */
-  .t-projects a { color: var(--ink); }
-  .t-projects .face { background-color: var(--paper); background-image: linear-gradient(color-mix(in oklab, var(--projects) 28%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--projects) 28%, transparent) 1px, transparent 1px); background-size: 20px 20px; }
-  .t-projects .face::before { display: none; }
-  .t-projects .no { -webkit-text-stroke-color: var(--projects); }
-  .net { position: absolute; right: 4%; top: 6%; width: min(68%, 22rem); }
-  .edges path { stroke-dasharray: 1; stroke-dashoffset: 1; }
-  .tile.in .edges path { animation: draw 0.7s ease-out forwards; }
-  .edges path:nth-child(2) { animation-delay: 0.15s !important; }
-  .edges path:nth-child(3) { animation-delay: 0.3s !important; }
-  .edges path:nth-child(4) { animation-delay: 0.45s !important; }
-  .edges path:nth-child(5) { animation-delay: 0.6s !important; }
-  @keyframes draw { to { stroke-dashoffset: 0; } }
-  .nodes circle { transform-box: fill-box; transform-origin: center; transition: scale 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.6); }
-  .tile a:hover .nodes circle { scale: 1.25; }
-  .tile a:hover .nodes circle:nth-child(even) { transition-delay: 0.08s; }
-
-  /* --- sixteen beats: the cycle actually plays --- */
-  .beats { position: absolute; top: 1.2rem; right: 1.2rem; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; width: min(46%, 10rem); }
-  .beats i { aspect-ratio: 1; border-radius: 50%; background: var(--on-music); animation: hit 8s linear infinite; animation-delay: calc(var(--i) * 0.5s); }
-  .beats i.khali { background: none; box-shadow: inset 0 0 0 2.5px var(--on-music); animation-name: hit-khali; }
-  @keyframes hit { 0% { scale: 1.45; background: var(--photos); } 7%, 100% { scale: 1; background: var(--on-music); } }
-  @keyframes hit-khali { 0% { scale: 1.45; background: var(--paper); } 7%, 100% { scale: 1; background: transparent; } }
-
-  /* --- the notebook: the line writes itself --- */
-  .t-words a { color: var(--ink); }
-  .t-words .face { background-color: #fffdf6; background-image: linear-gradient(90deg, transparent 2.2rem, var(--photos) 2.2rem, var(--photos) calc(2.2rem + 2px), transparent 0), repeating-linear-gradient(transparent 0 1.9rem, color-mix(in oklab, var(--words) 40%, transparent) 1.9rem calc(1.9rem + 1.5px)); }
-  .t-words .face::before { display: none; }
-  .t-words .no { left: auto; right: 1rem; -webkit-text-stroke-color: var(--words); }
-  .t-words .art { padding: 1.55rem 1rem 0 3rem; color: var(--words); }
-  .t-words .art p { margin: 0; font-size: 1.9rem; line-height: 1.9rem; font-weight: 700; }
-  .t-words .art span { display: block; width: max-content; }
-  .js .t-words .art span { clip-path: inset(0 100% 0 0); }
-  .js .tile.in .art span { animation: write 1.1s 0.3s steps(18) forwards; }
-  .js .tile.in .art span + span { animation-delay: 1.4s; }
-  @keyframes write { to { clip-path: inset(0 0 0 0); } }
-  .t-words .meta { padding-left: 2rem; }
-
-  /* --- wandering wonders --- */
-  .t-wonders .meta { max-width: 68%; }
-  .q { position: absolute; right: 5%; top: 50%; translate: 0 -52%; font-family: var(--display); font-weight: 800; font-style: italic; font-size: clamp(12rem, 62cqi, 21rem); line-height: 1; color: var(--music); -webkit-text-stroke: 2.5px var(--ink); text-shadow: 0.04em 0.04em 0 var(--photos); transform-origin: 50% 80%; }
-  .tile.in .q { animation: tilt 1.2s 0.2s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
-  .tile a:hover .q { animation: wobble 0.9s ease-in-out infinite alternate; }
-  @keyframes tilt { from { rotate: -30deg; scale: 0.6; } }
-  @keyframes wobble { from { rotate: -7deg; } to { rotate: 9deg; } }
-
-  @media (min-width: 48rem) {
-    .worlds { grid-template-columns: repeat(12, 1fr); gap: 2.2rem 1.8rem; }
-    .tile:nth-child(n) { margin-inline: 0; }
-    .face { min-height: 19rem; padding: 1.5rem; }
-    .t-photos { grid-column: 1 / 8; --r: -1.6deg; }
-    .t-photos .face { min-height: 27rem; }
-    .t-sport { grid-column: 8 / 13; --r: 2deg; margin-top: 5rem; }
-    .t-projects { grid-column: 2 / 8; --r: 1.2deg; margin-top: -1.5rem; }
-    .t-music { grid-column: 8 / 13; --r: -2.2deg; margin-top: 1.5rem; }
-    .t-words { grid-column: 1 / 6; --r: -1.4deg; margin-top: 1rem; }
-    .t-wonders { grid-column: 6 / 13; --r: 1.3deg; margin-top: -2rem; }
-    .ball { top: 12%; }
+  @media (min-width: 56rem) {
+    .feats { grid-template-columns: repeat(12, 1fr); column-gap: 1.5rem; row-gap: clamp(4rem, 8vw, 7rem); }
+    .f-photos { grid-column: 1 / 8; }
+    .f-photos .plate { aspect-ratio: 4 / 3; }
+    .f-sport { grid-column: 9 / 13; margin-top: 9rem; }
+    .f-sport .plate { aspect-ratio: 3 / 4; }
+    .f-projects { grid-column: 2 / 6; }
+    .f-projects .plate { aspect-ratio: 1; }
+    .f-music { grid-column: 7 / 13; margin-top: 6rem; }
+    .f-music .plate { aspect-ratio: 16 / 10; }
+    .f-words { grid-column: 1 / 5; margin-top: -3rem; }
+    .f-words .plate { aspect-ratio: 4 / 5; }
+    .f-wonders { grid-column: 6 / 13; margin-top: 4rem; }
+    .f-wonders .plate { aspect-ratio: 4 / 3; }
   }
 
-  /* ============ scroll reveal (only when JS is on) ============ */
-  .js [data-reveal] { opacity: 0; translate: 0 2.5rem; }
-  .js .tile[data-reveal] { rotate: calc(var(--r) * 4); scale: 0.94; }
-  .js [data-reveal].in { opacity: 1; translate: 0 0; transition: opacity 0.6s var(--d, 0ms), translate 0.7s var(--d, 0ms) cubic-bezier(0.2, 0.9, 0.3, 1.15), rotate 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.15), scale 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.15); }
-  .js .tile[data-reveal].in { rotate: var(--r); scale: 1; }
+  /* ---------- reveal on scroll (only when JS is on) ---------- */
+  .js [data-reveal] { opacity: 0; translate: 0 1.75rem; }
+  .js [data-reveal].in { opacity: 1; translate: 0 0; transition: opacity 0.9s var(--d, 0ms) ease, translate 1s var(--d, 0ms) cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .js .feat .plate { clip-path: inset(0 0 100% 0); }
+  .js .feat.in .plate { clip-path: inset(0); transition: clip-path 1.2s cubic-bezier(0.3, 0.7, 0.1, 1); }
 
-  /* ============ lately ============ */
-  .latest ol { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--ink); }
-  .latest a {
-    display: grid; grid-template-columns: 5rem 1fr auto; gap: 0 1rem; align-items: baseline;
-    padding: 0.9rem 0.6rem; border-bottom: 2px solid var(--ink); text-decoration: none;
-    background: linear-gradient(var(--world), var(--world)) no-repeat 0 0 / 0% 100%;
-    transition: background-size 0.35s cubic-bezier(0.3, 0.8, 0.2, 1), color 0.2s, padding 0.35s;
-  }
-  .latest a:hover, .latest a:focus-visible { background-size: 100% 100%; color: var(--on-world); padding-left: 1.4rem; }
-  .latest time { font-size: var(--s-1); font-weight: 700; grid-row: span 2; }
-  .latest .w { font-size: var(--s-1); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; display: flex; align-items: center; gap: 0.5em; }
-  .latest .w::before { content: ''; width: 0.8em; height: 0.8em; border-radius: 50%; background: var(--world); border: 1.5px solid var(--ink); }
-  .latest a:hover .w::before { background: var(--paper); }
-  .latest .t { grid-column: 2; font-family: var(--display); font-size: clamp(1.25rem, 2.6vw, 1.9rem); font-weight: 600; line-height: 1.15; }
-  .latest .go { grid-column: 3; grid-row: 1 / span 2; align-self: center; font-size: 1.6rem; translate: -0.6rem 0; opacity: 0; transition: translate 0.3s, opacity 0.3s; }
-  .latest a:hover .go { translate: 0 0; opacity: 1; }
-  @media (min-width: 48rem) {
-    .latest a { grid-template-columns: 6rem 12rem 1fr auto; }
-    .latest time, .latest .go { grid-row: auto; }
-    .latest .t, .latest .go { grid-column: auto; }
+  /* ---------- recently added ---------- */
+  .recent { margin-top: clamp(5rem, 11vw, 9rem); }
+  .recent .sec { margin-bottom: 0; padding-bottom: 1.1rem; }
+  .recent ol { list-style: none; margin: 0; padding: 0; }
+  .recent a { display: grid; grid-template-columns: 1fr; gap: 0.3rem 1.5rem; padding-block: 1.15rem; border-top: 1px solid var(--rule); text-decoration: none; align-items: baseline; }
+  .recent li:last-child a { border-bottom: 1px solid var(--rule); }
+  .recent time { color: var(--ink-soft); }
+  .recent .w { display: flex; align-items: center; gap: 0.6em; }
+  .recent .w::before { content: ''; width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--world); }
+  .recent a { grid-template-columns: auto 1fr; }
+  .recent .t { grid-column: 1 / -1; font-family: var(--display); font-weight: 400; font-size: clamp(1.35rem, 2vw + 0.7rem, 2rem); line-height: 1.2; letter-spacing: -0.015em; transition: translate 0.4s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .recent a:hover .t { translate: 0.6rem 0; }
+  @media (min-width: 56rem) {
+    .recent a { grid-template-columns: repeat(12, 1fr); }
+    .recent time { grid-column: 1 / 3; }
+    .recent .w { grid-column: 3 / 6; }
+    .recent .t { grid-column: 6 / 13; }
   }
 
-  /* ============ say hi ============ */
-  .hi { margin-top: clamp(4rem, 10vw, 8rem); }
-  .hi .hand { font-size: clamp(1.8rem, 4vw, 2.6rem); margin: 0 0 0.5rem; rotate: -3deg; width: max-content; color: var(--projects); font-weight: 700; }
-  .hi ul { list-style: none; margin: 0; padding: 0; }
-  .hi li:nth-child(even) { text-align: right; }
-  .hi a {
-    display: inline-block; text-decoration: none;
-    font-family: var(--display); font-weight: 800; font-size: clamp(2.7rem, 12vw, 8.5rem); line-height: 1.02; letter-spacing: -0.05em;
-    text-shadow: 0 0 0 var(--world);
-    transition: text-shadow 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.4), translate 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.4);
-  }
-  .hi li:nth-child(even) a { font-style: italic; font-weight: 600; }
-  .hi a span { display: inline-block; font-size: 0.5em; margin-left: 0.15em; translate: 0 -0.5em; color: var(--world); transition: translate 0.3s, rotate 0.3s; }
-  .hi a:hover, .hi a:focus-visible { text-shadow: 0.06em 0.06em 0 var(--world); translate: -0.03em -0.03em; }
-  .hi a:hover span { translate: 0.15em -0.7em; rotate: 12deg; }
+  /* ---------- closing ---------- */
+  .closing { margin: clamp(5rem, 11vw, 9rem) 0 0; max-width: 46rem; font-family: var(--display); font-weight: 300; font-size: clamp(1.9rem, 3.6vw + 0.8rem, 3.6rem); line-height: 1.12; letter-spacing: -0.03em; }
+  .closing a { font-style: italic; text-decoration-thickness: 2px; text-decoration-color: var(--photos); text-underline-offset: 0.14em; }
 </style>

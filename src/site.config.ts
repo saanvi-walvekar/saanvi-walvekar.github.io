@@ -25,12 +25,12 @@ export const site = {
 } as const;
 
 export const worlds = [
-  { id: 'photos', href: '/photos/', name: 'Postcards', kind: 'Photographs' },
-  { id: 'sport', href: '/sport/', name: 'Court & Track', kind: 'Basketball + athletics' },
-  { id: 'projects', href: '/projects/', name: 'The Network', kind: 'Projects' },
-  { id: 'music', href: '/music/', name: 'Sixteen Beats', kind: 'Tabla & more' },
-  { id: 'words', href: '/words/', name: 'The Notebook', kind: 'Poems & stories' },
-  { id: 'wonders', href: '/wonders/', name: 'Wandering Wonders', kind: 'Questions I chased' },
+  { id: 'photos', href: '/photos/', name: 'Postcards', kind: 'Photographs', blurb: 'Albums sent as postcards, from Kashmir to campus.' },
+  { id: 'sport', href: '/sport/', name: 'Court & Track', kind: 'Basketball + athletics', blurb: 'Two sports, the teams and events, and how they went.' },
+  { id: 'projects', href: '/projects/', name: 'The Network', kind: 'Projects', blurb: 'Projects drawn as a graph. Shared skills are the edges.' },
+  { id: 'music', href: '/music/', name: 'Sixteen Beats', kind: 'Tabla & more', blurb: 'Music laid out on the sixteen beats of teentaal.' },
+  { id: 'words', href: '/words/', name: 'The Notebook', kind: 'Poems & stories', blurb: 'Poems and short stories on plain ruled paper.' },
+  { id: 'wonders', href: '/wonders/', name: 'Wandering Wonders', kind: 'Questions I chased', blurb: 'Things I could not stop wondering about, and what I found.' },
 ] as const;
 
 export type WorldId = (typeof worlds)[number]['id'];
